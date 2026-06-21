@@ -1,10 +1,14 @@
 package glowie.glowie_app
 
-suspend fun headlessApp(appContainer: AppContainer) {
-    try {
-        appContainer.deviceManager.runGlowieDiscovery()
+class HeadlessApp (
+    private val appContainer: AppContainer,
+) {
+    fun start() {
+         appContainer.deviceManager.startGlowieDiscovery()
     }
-    finally {
-        appContainer.deviceManager.applyToAll { disconnect() }
+
+    suspend fun exit() {
+        appContainer.deviceManager.stopGlowieDiscoveryAndJoin()
+        appContainer.deviceManager.applyToAll { disconnect() }.join()
     }
 }

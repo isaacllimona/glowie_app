@@ -2,19 +2,15 @@ package glowie.glowie_app
 
 import android.app.Application
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 
 class GlowieApplication : Application() {
     private val appScope = GlobalScope
 
-    val appContainer = AppContainer(
-        appScope = appScope,
-    )
+    val appContainer = AppContainer(appScope)
+    val headlessApp = HeadlessApp(appContainer)
 
     override fun onCreate() {
         super.onCreate()
-        appScope.launch {
-            headlessApp(appContainer)
-        }
+        headlessApp.start()
     }
 }
