@@ -3,7 +3,6 @@ package glowie.glowie_app.launcher.presentation
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -25,6 +24,7 @@ import glowie.glowie_app.launcher.domain.Script
 fun LauncherScreen(
     viewModelFactory: () -> LauncherViewModel,
     onNewScriptClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val launcherViewModel = viewModel { viewModelFactory() }
     val scripts by launcherViewModel.scripts.collectAsStateWithLifecycle()
@@ -33,6 +33,7 @@ fun LauncherScreen(
         scripts = scripts,
         onScriptClick = launcherViewModel::onScriptClick,
         onNewScriptClick = onNewScriptClick,
+        modifier = modifier,
     )
 }
 
@@ -41,8 +42,9 @@ fun LauncherScreen(
     scripts: List<Script>,
     onScriptClick: (String) -> Unit = {},
     onNewScriptClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = modifier.fillMaxWidth()) {
         HorizontalDivider()
 
         LazyColumn(

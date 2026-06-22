@@ -5,6 +5,7 @@ import glowie.glowie_app.comms.internal.transport.BLE.KableGlowieScanner
 import glowie.glowie_app.control.domain.Control
 import glowie.glowie_app.control.presentation.ControlViewModel
 import glowie.glowie_app.devices.domain.DeviceManager
+import glowie.glowie_app.devices.presentation.DeviceManagerViewModel
 import glowie.glowie_app.scriptEditor.domain.RunCustomScript
 import glowie.glowie_app.scriptEditor.presentation.EditorViewModel
 import glowie.glowie_app.launcher.data.BuiltinScriptRepository
@@ -39,5 +40,8 @@ class AppContainer(appScope: CoroutineScope) {
     val EditorViewModelFactory = {
         val runCustomScript = RunCustomScript(deviceManager)
         EditorViewModel(runCustomScript)
+    }
+    val deviceManagerViewModelFactory = {
+        DeviceManagerViewModel(deviceManager)
     }
 }

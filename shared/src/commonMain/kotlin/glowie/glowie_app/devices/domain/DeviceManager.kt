@@ -7,6 +7,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.plus
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -19,6 +22,9 @@ class DeviceManager (
     private val _glowies = CopyOnWriteArrayList<GlowieDevice>()
     val glowies:  List<GlowieDevice>
         get() = _glowies
+
+    private val _glowiesState = MutableStateFlow<List<GlowieDevice>>(emptyList())
+    val glowiesState: StateFlow<List<GlowieDevice>> = _glowiesState.asStateFlow()
 
     fun applyToAll(func: suspend GlowieDevice.() -> Unit) : Job = communicationScope.launch {
         glowies.forEach {
@@ -60,6 +66,7 @@ class DeviceManager (
         println("New glowie connected!")
 
         _glowies.add(newGlowie)
+        _glowiesState.value = _glowies.toList()
         communicationScope.launch {
             newGlowie.awaitDisconnect()
             onDisconnect(newGlowie)
@@ -69,5 +76,6 @@ class DeviceManager (
     private fun onDisconnect(device: GlowieDevice) {
         println("Glowie disconnected!")
         _glowies.remove(device)
+        _glowiesState.value = _glowies.toList()
     }
 }
