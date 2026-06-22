@@ -2,11 +2,14 @@ package glowie.glowie_app.launcher.presentation
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,6 +24,7 @@ import glowie.glowie_app.launcher.domain.Script
 @Composable
 fun LauncherScreen(
     viewModelFactory: () -> LauncherViewModel,
+    onNewScriptClick: () -> Unit,
 ) {
     val launcherViewModel = viewModel { viewModelFactory() }
     val scripts by launcherViewModel.scripts.collectAsStateWithLifecycle()
@@ -28,6 +32,7 @@ fun LauncherScreen(
     LauncherScreen(
         scripts = scripts,
         onScriptClick = launcherViewModel::onScriptClick,
+        onNewScriptClick = onNewScriptClick,
     )
 }
 
@@ -35,13 +40,15 @@ fun LauncherScreen(
 fun LauncherScreen(
     scripts: List<Script>,
     onScriptClick: (String) -> Unit = {},
+    onNewScriptClick: () -> Unit = {},
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         HorizontalDivider()
 
         LazyColumn(
             modifier = Modifier
-                .fillMaxSize()
+                .weight(1f)
+                .fillMaxWidth()
                 .padding(horizontal = 16.dp),
         ) {
             items(scripts) { script ->
@@ -55,5 +62,18 @@ fun LauncherScreen(
                 )
             }
         }
+
+        HorizontalDivider()
+
+        Button(
+            onClick = onNewScriptClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+        ) {
+            Text("Custom script")
+        }
+
+        Spacer(Modifier.height(16.dp))
     }
 }
