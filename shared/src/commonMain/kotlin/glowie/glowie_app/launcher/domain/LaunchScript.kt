@@ -13,4 +13,10 @@ class LaunchScript(
             runScript(script)
         }
     }
+
+    fun stop() {
+        deviceManager.applyToAll {
+            runScript("led.setColorRGB(0,0,0) sys.stop()")
+        }
+    }
 }

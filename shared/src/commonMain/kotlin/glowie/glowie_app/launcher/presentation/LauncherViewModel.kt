@@ -17,6 +17,9 @@ class LauncherViewModel(
     private val _scripts = MutableStateFlow<List<Script>>(emptyList())
     val scripts: StateFlow<List<Script>> = _scripts.asStateFlow()
 
+    private val _runningScript = MutableStateFlow<Script?>(null)
+    val runningScript: StateFlow<Script?> = _runningScript.asStateFlow()
+
     init {
         viewModelScope.launch {
             _scripts.value = scriptRepository.listScripts()
@@ -25,7 +28,14 @@ class LauncherViewModel(
 
     fun onScriptClick(scriptId: String) {
         viewModelScope.launch {
+            val script = _scripts.value.find { it.id == scriptId } ?: return@launch
+            _runningScript.value = script
             launchScript(scriptId)
         }
+    }
+
+    fun stopRunningScript() {
+        launchScript.stop()
+        _runningScript.value = null
     }
 }
