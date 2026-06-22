@@ -17,3 +17,8 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
+
+# Custom things
+
+# The builtin scripts are copied by gradle to this location
+/shared/src/commonMain/composeResources/files/builtin_scripts/

@@ -12,8 +12,6 @@ class Control (
     fun setEnabled(enabled: Boolean) {
         deviceManager.applyToAll {
             setLEDsEnabled(enabled)
-            if (enabled) runScript("led.setColorRGB(50,100,100)")
-            else runScript("led.setColorRGB(0,0,0)")
         }
     }
 
