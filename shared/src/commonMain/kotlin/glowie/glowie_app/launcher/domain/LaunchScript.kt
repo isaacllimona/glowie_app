@@ -8,9 +8,10 @@ class LaunchScript(
 ) {
     suspend operator fun invoke(scriptId: String) {
         val script = scriptRepository.getScriptContent(scriptId)
+        val compacted_script = compactScript(script)
         deviceManager.applyToAll {
             runScript("sys.stop()")
-            runScript(script)
+            runScript(compacted_script)
         }
     }
 
