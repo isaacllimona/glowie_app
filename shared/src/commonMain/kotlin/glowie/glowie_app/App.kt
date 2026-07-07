@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import glowie.glowie_app.control.presentation.ControlBar
 import glowie.glowie_app.devices.presentation.DeviceManagerScreen
 import glowie.glowie_app.launcher.presentation.LauncherScreen
@@ -26,7 +27,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 object Home
 @Serializable
-object ScriptEditor
+data class ScriptEditor(val scriptId: String = "")
 @Serializable
 object Devices
 
@@ -45,7 +46,8 @@ fun App(appContainer: AppContainer) {
 
                     LauncherScreen(
                         viewModelFactory = appContainer.launcherViewModelFactory,
-                        onNewScriptClick = { navController.navigate(ScriptEditor) },
+                        onNewScriptClick = { navController.navigate(ScriptEditor()) },
+                        onEditScript = { scriptId -> navController.navigate(ScriptEditor(scriptId = scriptId)) },
                         modifier = Modifier.weight(1f),
                     )
 
@@ -59,10 +61,11 @@ fun App(appContainer: AppContainer) {
                     }
                 }
             }
-            composable<ScriptEditor> {
+            composable<ScriptEditor> { backStackEntry ->
+                val route = backStackEntry.toRoute<ScriptEditor>()
                 Column(modifier = Modifier.fillMaxSize()) {
                     EditorScreen(
-                        viewModelFactory = appContainer.EditorViewModelFactory,
+                        viewModelFactory = { appContainer.EditorViewModelFactory(route.scriptId) },
                         onBackClick = { navController.popBackStack() },
                     )
                 }
