@@ -7,7 +7,7 @@ class GlowieApplication : Application() {
     private val appScope = GlobalScope
 
     val appContainer = AppContainer(appScope)
-    val headlessApp = HeadlessApp(appContainer)
+    val headlessApp = HeadlessApp(appContainer, appScope)
 
     override fun onCreate() {
         super.onCreate()

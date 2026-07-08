@@ -8,7 +8,7 @@ import kotlinx.coroutines.runBlocking
 fun main() = application {
     val appScope = rememberCoroutineScope()
     val appContainer = AppContainer(appScope)
-    val headlessApp = HeadlessApp(appContainer)
+    val headlessApp = HeadlessApp(appContainer, appScope)
 
     headlessApp.start()
 

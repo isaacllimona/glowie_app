@@ -5,6 +5,7 @@ interface GlowieDeviceControl {
     suspend fun setBrightness(brightness: Float)
     suspend fun shutdown()
     suspend fun runScript(script: String)
+    suspend fun setTime(time: Int)
 }
 
 interface GlowieDeviceConnection {

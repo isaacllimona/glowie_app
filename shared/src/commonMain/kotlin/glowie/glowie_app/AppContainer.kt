@@ -12,6 +12,7 @@ import glowie.glowie_app.scriptEditor.presentation.EditorViewModel
 import glowie.glowie_app.launcher.data.BuiltinScriptRepository
 import glowie.glowie_app.launcher.domain.LaunchScript
 import glowie.glowie_app.launcher.presentation.LauncherViewModel
+import glowie.glowie_app.syncClock.domain.SyncClockBroadcaster
 import kotlinx.coroutines.CoroutineScope
 
 class AppContainer(appScope: CoroutineScope) {
@@ -27,6 +28,7 @@ class AppContainer(appScope: CoroutineScope) {
         deviceManager,
         scope = appScope
     )
+    val syncClockBroadcaster = SyncClockBroadcaster(deviceManager)
 
     private val scriptRepository = BuiltinScriptRepository()
 

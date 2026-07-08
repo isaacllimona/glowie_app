@@ -31,4 +31,7 @@ private class CmdGlowieDeviceControl (
     override suspend fun runScript(script: String) {
         sendCommand("run $script")
     }
+    override suspend fun setTime(time: Int) {
+        sendCommand("time_set $time")
+    }
 }
