@@ -6,4 +6,6 @@ import glowie.glowie_app.comms.`interface`.GlowieInfo
 interface GlowieDeviceTransport : GlowieDeviceConnection {
     val info: GlowieInfo
     suspend fun sendCommand(command: String)
+
+    suspend fun getMaxCommandLength(): Int
 }

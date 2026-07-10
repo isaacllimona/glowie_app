@@ -18,6 +18,8 @@ private object Chars {
     )
 }
 
+private val COMMAND_WRITE_TYPE = WriteType.WithResponse
+
 class KableGlowieDevice (
     private val peripheral: Peripheral,
     override val info: GlowieInfo
@@ -27,12 +29,14 @@ class KableGlowieDevice (
             peripheral.write(
                 Chars.cmd_in,
                 command.toByteArray(),
-                writeType = WriteType.WithResponse,
+                writeType = COMMAND_WRITE_TYPE,
             )
         } catch (e: Exception) {
             println("Could not send command: $command. Exception: $e")
         }
     }
+
+    override suspend fun getMaxCommandLength(): Int = peripheral.maximumWriteValueLengthForType(COMMAND_WRITE_TYPE)
 
     override suspend fun disconnect() {
         peripheral.disconnect()
