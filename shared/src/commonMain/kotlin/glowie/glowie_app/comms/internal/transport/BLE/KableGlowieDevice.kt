@@ -19,6 +19,7 @@ private object Chars {
 }
 
 private val COMMAND_WRITE_TYPE = WriteType.WithResponse
+private const val MAX_WRITE_LENGTH = 216 // Found experimentally, no idea where it comes from. Firmware is set to
 
 class KableGlowieDevice (
     private val peripheral: Peripheral,
@@ -36,7 +37,7 @@ class KableGlowieDevice (
         }
     }
 
-    override suspend fun getMaxCommandLength(): Int = peripheral.maximumWriteValueLengthForType(COMMAND_WRITE_TYPE)
+    override suspend fun getMaxCommandLength(): Int = MAX_WRITE_LENGTH //TODO: can I get the acual MTU?
 
     override suspend fun disconnect() {
         peripheral.disconnect()
