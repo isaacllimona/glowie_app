@@ -2,7 +2,7 @@ package glowie.glowie_app.launcher.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import glowie.glowie_app.launcher.domain.LaunchScript
+import glowie.glowie_app.launcher.domain.LaunchScriptFromID
 import glowie.glowie_app.launcher.domain.Script
 import glowie.glowie_app.launcher.domain.ScriptRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 
 class LauncherViewModel(
     private val scriptRepository: ScriptRepository,
-    private val launchScript: LaunchScript,
+    private val launchScriptFromID: LaunchScriptFromID,
 ) : ViewModel() {
     private val _scripts = MutableStateFlow<List<Script>>(emptyList())
     val scripts: StateFlow<List<Script>> = _scripts.asStateFlow()
@@ -30,12 +30,12 @@ class LauncherViewModel(
         viewModelScope.launch {
             val script = _scripts.value.find { it.id == scriptId } ?: return@launch
             _runningScript.value = script
-            launchScript(scriptId)
+            launchScriptFromID(scriptId)
         }
     }
 
     fun stopRunningScript() {
-        launchScript.stop()
+        launchScriptFromID.stop()
         _runningScript.value = null
     }
 }

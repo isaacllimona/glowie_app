@@ -1,14 +1,11 @@
 package glowie.glowie_app.scriptEditor.domain
 
-import glowie.glowie_app.devices.domain.DeviceManager
+import glowie.glowie_app.launcher.domain.LaunchScript
 
 class RunCustomScript(
-    private val deviceManager: DeviceManager,
+    private val launchScript: LaunchScript,
 ) {
-    suspend operator fun invoke(script: String) {
-        deviceManager.applyToAll {
-            runScript("sys.stop()")
-            runScript(script)
-        }
+    operator fun invoke(script: String) {
+        launchScript(script)
     }
 }

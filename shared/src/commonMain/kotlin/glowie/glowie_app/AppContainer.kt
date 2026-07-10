@@ -11,6 +11,7 @@ import glowie.glowie_app.scriptEditor.domain.RunCustomScript
 import glowie.glowie_app.scriptEditor.presentation.EditorViewModel
 import glowie.glowie_app.launcher.data.BuiltinScriptRepository
 import glowie.glowie_app.launcher.domain.LaunchScript
+import glowie.glowie_app.launcher.domain.LaunchScriptFromID
 import glowie.glowie_app.launcher.presentation.LauncherViewModel
 import glowie.glowie_app.syncClock.domain.SyncClockBroadcaster
 import kotlinx.coroutines.CoroutineScope
@@ -37,11 +38,11 @@ class AppContainer(appScope: CoroutineScope) {
         ControlViewModel(control)
     }
     val launcherViewModelFactory = {
-        val launchScript = LaunchScript(scriptRepository, deviceManager)
-        LauncherViewModel(scriptRepository, launchScript)
+        val launchScriptFromID = LaunchScriptFromID(scriptRepository, LaunchScript(deviceManager))
+        LauncherViewModel(scriptRepository, launchScriptFromID)
     }
     val EditorViewModelFactory = { scriptId: String ->
-        val runCustomScript = RunCustomScript(deviceManager)
+        val runCustomScript = RunCustomScript(LaunchScript(deviceManager))
         val getScriptContent = GetScriptContent(scriptRepository)
         EditorViewModel(runCustomScript, getScriptContent, scriptId)
     }
