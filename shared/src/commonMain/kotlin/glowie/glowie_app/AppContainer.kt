@@ -8,6 +8,7 @@ import glowie.glowie_app.devices.domain.DeviceManager
 import glowie.glowie_app.devices.presentation.DeviceManagerViewModel
 import glowie.glowie_app.scriptEditor.domain.GetScriptContent
 import glowie.glowie_app.scriptEditor.domain.RunCustomScript
+import glowie.glowie_app.scriptEditor.domain.ColorLivePreview
 import glowie.glowie_app.scriptEditor.presentation.EditorViewModel
 import glowie.glowie_app.launcher.data.BuiltinScriptRepository
 import glowie.glowie_app.launcher.domain.LaunchScript
@@ -44,7 +45,8 @@ class AppContainer(appScope: CoroutineScope) {
     val EditorViewModelFactory = { scriptId: String ->
         val runCustomScript = RunCustomScript(LaunchScript(deviceManager))
         val getScriptContent = GetScriptContent(scriptRepository)
-        EditorViewModel(runCustomScript, getScriptContent, scriptId)
+        val colorLivePreview = ColorLivePreview(deviceManager)
+        EditorViewModel(runCustomScript, getScriptContent, colorLivePreview, scriptId)
     }
     val deviceManagerViewModelFactory = {
         DeviceManagerViewModel(deviceManager)
