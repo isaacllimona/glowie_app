@@ -1,35 +1,25 @@
-package glowie.glowie_app.comms.internal
+package glowie.glowie_app.comms.internal.common
 
-import glowie.glowie_app.comms.`interface`.GlowieDevice
-import glowie.glowie_app.comms.`interface`.GlowieDeviceConnection
 import glowie.glowie_app.comms.`interface`.GlowieDeviceControl
-import glowie.glowie_app.comms.internal.transport.GlowieDeviceTransport
 import kotlin.math.min
 
-class GlowieDeviceImpl (
-    private val glowieDeviceTransport: GlowieDeviceTransport,
-) : GlowieDevice,
-    GlowieDeviceControl by CmdGlowieDeviceControl(
-        glowieDeviceTransport::sendCommand,
-        glowieDeviceTransport::getMaxCommandLength),
-    GlowieDeviceConnection by glowieDeviceTransport
-{
-    override val info = glowieDeviceTransport.info
+interface GlowieDeviceCommandSender {
+    suspend fun sendCommand(cmd: String): Unit
+    suspend fun getMaxCommandLen(): Int
 }
 
-private class CmdGlowieDeviceControl (
-    private val sendCommand: suspend (String) -> Unit,
-    private val getMaxCommandLen: suspend () -> Int
+class GlowieCommands (
+    private val commandSender: GlowieDeviceCommandSender
 ) : GlowieDeviceControl{
     override suspend fun setLEDsEnabled(enabled: Boolean) {
-        sendCommand("${Commands.setLEDsEnabled} ${if (enabled) "1" else "0"}")
+        commandSender.sendCommand("${Commands.setLEDsEnabled} ${if (enabled) "1" else "0"}")
     }
     override suspend fun setBrightness(brightness: Float) {
         val brightnessInt: Int = min((brightness * 255).toInt(), 255)
-        sendCommand("${Commands.setBrigntness} $brightnessInt")
+        commandSender.sendCommand("${Commands.setBrigntness} $brightnessInt")
     }
     override suspend fun shutdown() {
-        sendCommand("${Commands.shutdown}")
+        commandSender.sendCommand("${Commands.shutdown}")
     }
     override suspend fun runScript(script: String) {
         if (script.length == 0) {
@@ -38,14 +28,14 @@ private class CmdGlowieDeviceControl (
         }
 
         // Maximum script length is max command length minus command + space
-        val maxScriptLen = getMaxCommandLen() - Commands.runScript.length - 1
+        val maxScriptLen = commandSender.getMaxCommandLen() - Commands.runScript.length - 1
 
         for (chunk in chunkScript(script, maxScriptLen)) {
-            sendCommand("${Commands.runScript} $chunk")
+            commandSender.sendCommand("${Commands.runScript} $chunk")
         }
     }
     override suspend fun setTime(time: Int) {
-        sendCommand("${Commands.setTime} $time")
+        commandSender.sendCommand("${Commands.setTime} $time")
     }
 }
 

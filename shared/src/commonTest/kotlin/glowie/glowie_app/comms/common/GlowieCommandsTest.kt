@@ -1,37 +1,34 @@
 package glowie.glowie_app.comms.internal
 
-import glowie.glowie_app.comms.`interface`.GlowieInfo
-import glowie.glowie_app.comms.internal.transport.GlowieDeviceTransport
+import glowie.glowie_app.comms.`interface`.GlowieDeviceControl
+import glowie.glowie_app.comms.internal.common.GlowieCommands
+import glowie.glowie_app.comms.internal.common.GlowieDeviceCommandSender
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class GlowieDeviceImplTest {
+class GlowieCommandsTest {
 
-    private fun createTransport(
+    private fun createGlowieCommands(
         maxCommandLen: Int,
         sentCommands: MutableList<String> = mutableListOf()
-    ): GlowieDeviceTransport = object : GlowieDeviceTransport {
-        override val info: GlowieInfo = GlowieInfo(name = "test", id = "test-id")
-
-        override suspend fun sendCommand(command: String) {
-            sentCommands.add(command)
+    ) : GlowieDeviceControl  {
+        val commandSender = object : GlowieDeviceCommandSender{
+            override suspend fun sendCommand(cmd: String) {
+                sentCommands.add(cmd)
+            }
+            override suspend fun getMaxCommandLen(): Int = maxCommandLen
         }
 
-        override suspend fun getMaxCommandLength(): Int = maxCommandLen
-
-        override suspend fun disconnect() {}
-
-        override suspend fun awaitDisconnect() {}
+        return GlowieCommands(commandSender)
     }
 
     @Test
     fun runScript_shortScriptSingleChunk() = runTest {
         val sentCommands = mutableListOf<String>()
-        val transport = createTransport(maxCommandLen = 10, sentCommands = sentCommands)
-        val device = GlowieDeviceImpl(transport)
+        val commands = createGlowieCommands(maxCommandLen = 10, sentCommands = sentCommands)
 
-        device.runScript("abc")
+        commands.runScript("abc")
 
         assertEquals(1, sentCommands.size)
         assertEquals("run abc", sentCommands[0])
@@ -41,10 +38,9 @@ class GlowieDeviceImplTest {
     @Test
     fun runScript_scriptExactlyMaxScriptLen() = runTest {
         val sentCommands = mutableListOf<String>()
-        val transport = createTransport(maxCommandLen = 10, sentCommands = sentCommands)
-        val device = GlowieDeviceImpl(transport)
+        val commands = createGlowieCommands(maxCommandLen = 10, sentCommands = sentCommands)
 
-        device.runScript("abcdef")
+        commands.runScript("abcdef")
 
         assertEquals(1, sentCommands.size)
         assertEquals("run abcdef", sentCommands[0])
@@ -53,10 +49,9 @@ class GlowieDeviceImplTest {
     @Test
     fun runScript_scriptOneOverMaxSplitsIntoTwoChunks() = runTest {
         val sentCommands = mutableListOf<String>()
-        val transport = createTransport(maxCommandLen = 10, sentCommands = sentCommands)
-        val device = GlowieDeviceImpl(transport)
+        val commands = createGlowieCommands(maxCommandLen = 10, sentCommands = sentCommands)
 
-        device.runScript("abcdefg")
+        commands.runScript("abcdefg")
 
         assertEquals(2, sentCommands.size)
         assertEquals("run abcde\\", sentCommands[0])
@@ -67,10 +62,9 @@ class GlowieDeviceImplTest {
     @Test
     fun runScript_longScriptMultipleChunks() = runTest {
         val sentCommands = mutableListOf<String>()
-        val transport = createTransport(maxCommandLen = 10, sentCommands = sentCommands)
-        val device = GlowieDeviceImpl(transport)
+        val commands = createGlowieCommands(maxCommandLen = 10, sentCommands = sentCommands)
 
-        device.runScript("abcdefghijkl")
+        commands.runScript("abcdefghijkl")
 
         assertEquals(3, sentCommands.size)
         assertEquals("run abcde\\", sentCommands[0])
@@ -83,12 +77,11 @@ class GlowieDeviceImplTest {
     @Test
     fun runScript_largerMaxCommandLen() = runTest {
         val sentCommands = mutableListOf<String>()
-        val transport = createTransport(maxCommandLen = 20, sentCommands = sentCommands)
-        val device = GlowieDeviceImpl(transport)
+        val commands = createGlowieCommands(maxCommandLen = 20, sentCommands = sentCommands)
 
         // 17 chars > 16 → should split into 2 chunks
         val script = "a".repeat(17)
-        device.runScript(script)
+        commands.runScript(script)
 
         assertEquals(2, sentCommands.size)
         // First chunk: 15 chars + "\" = 15 + 1, plus "run " = 4 + 15 + 1 = 20

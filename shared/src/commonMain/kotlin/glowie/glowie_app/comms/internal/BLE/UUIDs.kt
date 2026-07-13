@@ -1,4 +1,4 @@
-package glowie.glowie_app.comms.internal.transport.BLE
+package glowie.glowie_app.comms.internal.BLE
 
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
