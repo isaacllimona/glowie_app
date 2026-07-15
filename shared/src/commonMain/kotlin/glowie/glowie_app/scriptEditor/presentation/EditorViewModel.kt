@@ -40,7 +40,9 @@ class EditorViewModel(
     }
 
     fun onLaunch() {
-        runCustomScript(_scriptText.value)
+        viewModelScope.launch {
+            runCustomScript(_scriptText.value)
+        }
     }
 
     // ---- Color picker ----

@@ -10,7 +10,7 @@ class SyncClockBroadcaster (
     private val deviceManager: DeviceManager,
     private val syncClock: SyncClock = SyncClock(),
 ){
-    suspend fun runPeriodicBroadcaster() {
+    suspend fun run() {
         while (true) {
             deviceManager.applyToAll { setTime(syncClock.getTime()) }
             delay(sharedClockBroadcastPeriod)

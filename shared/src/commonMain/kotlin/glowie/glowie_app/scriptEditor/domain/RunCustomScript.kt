@@ -5,7 +5,7 @@ import glowie.glowie_app.launcher.domain.LaunchScript
 class RunCustomScript(
     private val launchScript: LaunchScript,
 ) {
-    operator fun invoke(script: String) {
+    suspend operator fun invoke(script: String) {
         launchScript(script)
     }
 }

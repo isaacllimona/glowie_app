@@ -24,7 +24,7 @@ class ColorLivePreview(
     }
 
     suspend fun runLivePreview() {
-        deviceManager.applyToAll { runScript("setColorRGB(0,0,0) stop()") }.join()
+        deviceManager.applyToAll { runScript("setColorRGB(0,0,0) stop()") }
         try {
             colorFlow
                 .collect { color ->
@@ -33,7 +33,7 @@ class ColorLivePreview(
                     val scriptVal = (color.value * 255f).roundToInt()
                     deviceManager.applyToAll {
                         runScript("setColorHSV($scriptHue, $scriptSat, $scriptVal)")
-                    }.join()
+                    }
                 }
         } finally {
             deviceManager.applyToAll { runScript("setColorRGB(0,0,0)") }

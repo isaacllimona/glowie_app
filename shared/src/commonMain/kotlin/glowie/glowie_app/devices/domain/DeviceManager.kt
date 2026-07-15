@@ -1,81 +1,41 @@
 package glowie.glowie_app.devices.domain
 
-import glowie.glowie_app.comms.`interface`.GlowieScanner
 import glowie.glowie_app.comms.`interface`.GlowieDevice
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.plus
+import kotlinx.coroutines.launch
 import java.util.concurrent.CopyOnWriteArrayList
 
-class DeviceManager (
-    private val glowieScanner: GlowieScanner,
-    scope: CoroutineScope
-) {
-    private val communicationScope = scope + Dispatchers.IO
-
+class DeviceManager {
     private val _glowies = CopyOnWriteArrayList<GlowieDevice>()
     val glowies:  List<GlowieDevice>
-        get() = _glowies
+        get() = _glowies.toList()
 
     private val _glowiesState = MutableStateFlow<List<GlowieDevice>>(emptyList())
-    val glowiesState: StateFlow<List<GlowieDevice>> = _glowiesState.asStateFlow()
+    val glowiesState = _glowiesState.asStateFlow()
 
-    fun applyToAll(func: suspend GlowieDevice.() -> Unit) : Job = communicationScope.launch {
+    private val _newConnectionsFlow = MutableSharedFlow<GlowieDevice>()
+    val newConnectionsFlow = _newConnectionsFlow.asSharedFlow()
+
+    suspend fun applyToAll(func: suspend GlowieDevice.() -> Unit) = coroutineScope {
         glowies.forEach {
             launch { it.func() }
         }
     }
 
-    // Headless
-
-    var discoveryJob: Job? = null
-
-    fun startGlowieDiscovery() {
-        if (discoveryJob != null) {
-            println("glowie discovery is already running")
-            return
-        }
-
-        discoveryJob = communicationScope.launch {
-            glowieScanner.scan().collect { connectable ->
-                if (glowies.any { it.info.id == connectable.id }) {
-                    println("Found a glowie that is already connected")
-                    return@collect
-                }
-                val newGlowie = glowieScanner.connect(connectable)
-                addGlowie(newGlowie)
-            }
-        }
-    }
-
-    fun stopGlowieDiscovery() {
-        discoveryJob?.cancel()
-    }
-
-    suspend fun stopGlowieDiscoveryAndJoin() {
-        discoveryJob?.cancelAndJoin()
-    }
-
-    private fun addGlowie(newGlowie: GlowieDevice) {
+    internal suspend fun addDevice(device: GlowieDevice) {
         println("New glowie connected!")
-
-        _glowies.add(newGlowie)
-        _glowiesState.value = _glowies.toList()
-        communicationScope.launch {
-            newGlowie.awaitDisconnect()
-            onDisconnect(newGlowie)
-        }
+        _glowies.add(device)
+        _glowiesState.value = glowies
+        _newConnectionsFlow.emit(device)
     }
 
-    private fun onDisconnect(device: GlowieDevice) {
+    internal fun removeDevice(device: GlowieDevice) {
         println("Glowie disconnected!")
         _glowies.remove(device)
-        _glowiesState.value = _glowies.toList()
+        _glowiesState.value = glowies
     }
 }

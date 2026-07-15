@@ -9,7 +9,7 @@ class LaunchScriptFromID(
         launchScript(script)
     }
 
-    fun stop() {
+    suspend fun stop() {
         launchScript.stop()
     }
 }

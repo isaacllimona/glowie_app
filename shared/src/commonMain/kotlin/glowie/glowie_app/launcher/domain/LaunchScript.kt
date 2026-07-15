@@ -5,7 +5,7 @@ import glowie.glowie_app.devices.domain.DeviceManager
 class LaunchScript (
     private val deviceManager: DeviceManager
 ) {
-    operator fun invoke(script: String) {
+    suspend operator fun invoke(script: String) {
         val compacted_script = compactScript(script)
         deviceManager.applyToAll {
             runScript("stop()")
@@ -13,7 +13,7 @@ class LaunchScript (
         }
     }
 
-    fun stop() {
+    suspend fun stop() {
         deviceManager.applyToAll {
             runScript("setColorRGB(0,0,0) stop()")
         }

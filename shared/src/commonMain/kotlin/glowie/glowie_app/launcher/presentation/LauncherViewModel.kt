@@ -35,7 +35,7 @@ class LauncherViewModel(
     }
 
     fun stopRunningScript() {
-        launchScriptFromID.stop()
+        viewModelScope.launch { launchScriptFromID.stop() }
         _runningScript.value = null
     }
 }
