@@ -8,10 +8,14 @@ import glowie.glowie_app.comms.`interface`.GlowieDevice
 import glowie.glowie_app.comms.`interface`.GlowieDeviceConnection
 import glowie.glowie_app.comms.`interface`.GlowieInfo
 import glowie.glowie_app.comms.`interface`.GlowieDeviceControl
+import glowie.glowie_app.comms.`interface`.GlowieDeviceNotifications
 import glowie.glowie_app.comms.internal.common.GlowieCommands
 import glowie.glowie_app.comms.internal.common.GlowieDeviceCommandSender
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
@@ -19,6 +23,10 @@ private object Chars {
     val cmd_in = characteristicOf(
         service = UUIDs.Services.control,
         characteristic = UUIDs.Chars.cmd_in
+    )
+    val cmd_err = characteristicOf(
+        service = UUIDs.Services.control,
+        characteristic = UUIDs.Chars.cmd_err
     )
 }
 
@@ -38,7 +46,14 @@ class KableGlowieDeviceCommandSender (private val peripheral: Peripheral) : Glow
         }
     }
 
-    override suspend fun getMaxCommandLen(): Int = MAX_WRITE_LENGTH //TODO: can I get the acual MTU?
+    override suspend fun getMaxCommandLen(): Int = MAX_WRITE_LENGTH
+}
+
+class KableGlowieDeviceNotifications (private val peripheral: Peripheral) : GlowieDeviceNotifications {
+    override fun observeCmdErr(): Flow<String> =
+        peripheral.observe(Chars.cmd_err)
+            .catch { exception -> println("Error in cmdErr observer: $exception") }
+            .map { it.toString(Charsets.UTF_8) }
 }
 
 class KableGlowieDeviceConnection (private val peripheral: Peripheral) : GlowieDeviceConnection {
@@ -58,5 +73,6 @@ class KableGlowieDevice(
     override val info: GlowieInfo
     ) : GlowieDevice,
         GlowieDeviceControl by GlowieCommands(KableGlowieDeviceCommandSender(peripheral)),
+        GlowieDeviceNotifications by KableGlowieDeviceNotifications(peripheral),
         GlowieDeviceConnection by KableGlowieDeviceConnection(peripheral)
 

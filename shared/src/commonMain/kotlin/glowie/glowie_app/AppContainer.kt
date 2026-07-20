@@ -1,5 +1,7 @@
 package glowie.glowie_app
 
+import glowie.glowie_app.cmderrors.presentation.ErrorViewModel
+import glowie.glowie_app.cmderrors.domain.MergedCmdErrFlow
 import glowie.glowie_app.comms.internal.BLE.KableGlowieScanner
 import glowie.glowie_app.control.domain.ControlDispatcher
 import glowie.glowie_app.control.domain.ControlState
@@ -25,6 +27,7 @@ class AppContainer() {
     // Instantiate stateful things that shall live during the entire application
     private val deviceManager = DeviceManager()
     private val controlState = ControlState()
+    private val mergedCmdErrFlow = MergedCmdErrFlow(deviceManager)
 
     private val scriptRepository = BuiltinScriptRepository()
 
@@ -53,5 +56,8 @@ class AppContainer() {
     }
     val deviceManagerViewModelFactory = {
         DeviceManagerViewModel(deviceManager)
+    }
+    val errorViewModelFactory = {
+        ErrorViewModel(mergedCmdErrFlow)
     }
 }

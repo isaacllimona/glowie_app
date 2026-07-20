@@ -10,5 +10,7 @@ object UUIDs {
     }
     object Chars {
         val cmd_in = Uuid.parse("00000001-1fbd-0481-2a47-f3b657518ec1")
+        val cmd_err = Uuid.parse("00000002-1fbd-0481-2a47-f3b657518ec1")
+
     }
 }

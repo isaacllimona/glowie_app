@@ -27,8 +27,10 @@ class KableGlowieScanner : GlowieScanner {
     }
 
     override suspend fun connect(device: GlowieInfo) : GlowieDevice {
-        val peripheral = Peripheral(device.id.toIdentifier())
+        val peripheral = Peripheral(device.id.toIdentifier(), PeripheralBuilder::platformPeripheralBuilder)
         peripheral.connect()
         return KableGlowieDevice(peripheral, device)
     }
 }
+
+expect fun PeripheralBuilder.platformPeripheralBuilder(): Unit

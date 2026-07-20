@@ -1,5 +1,6 @@
 package glowie.glowie_app
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +19,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import glowie.glowie_app.cmderrors.presentation.ErrorDialog
 import glowie.glowie_app.control.presentation.ControlBar
 import glowie.glowie_app.devices.presentation.DeviceManagerScreen
 import glowie.glowie_app.launcher.presentation.LauncherScreen
@@ -35,49 +37,52 @@ object Devices
 fun App(appContainer: AppContainer) {
     MaterialTheme {
         val navController = rememberNavController()
-        NavHost(
-            navController = navController,
-            startDestination = Home,
-            modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars),
-        ) {
-            composable<Home> {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    ControlBar(viewModelFactory = appContainer.controlViewModelFactory)
+        Box(Modifier.fillMaxSize()) {
+            NavHost(
+                navController = navController,
+                startDestination = Home,
+                modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars),
+            ) {
+                composable<Home> {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        ControlBar(viewModelFactory = appContainer.controlViewModelFactory)
 
-                    LauncherScreen(
-                        viewModelFactory = appContainer.launcherViewModelFactory,
-                        onNewScriptClick = { navController.navigate(ScriptEditor()) },
-                        onEditScript = { scriptId -> navController.navigate(ScriptEditor(scriptId = scriptId)) },
-                        modifier = Modifier.weight(1f),
-                    )
+                        LauncherScreen(
+                            viewModelFactory = appContainer.launcherViewModelFactory,
+                            onNewScriptClick = { navController.navigate(ScriptEditor()) },
+                            onEditScript = { scriptId -> navController.navigate(ScriptEditor(scriptId = scriptId)) },
+                            modifier = Modifier.weight(1f),
+                        )
 
-                    Surface(modifier = Modifier.fillMaxWidth()) {
-                        Button(
-                            onClick = { navController.navigate(Devices) },
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        ) {
-                            Text("Devices")
+                        Surface(modifier = Modifier.fillMaxWidth()) {
+                            Button(
+                                onClick = { navController.navigate(Devices) },
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            ) {
+                                Text("Devices")
+                            }
                         }
                     }
                 }
-            }
-            composable<ScriptEditor> { backStackEntry ->
-                val route = backStackEntry.toRoute<ScriptEditor>()
-                Column(modifier = Modifier.fillMaxSize()) {
-                    EditorScreen(
-                        viewModelFactory = { appContainer.EditorViewModelFactory(route.scriptId) },
-                        onBackClick = { navController.popBackStack() },
-                    )
+                composable<ScriptEditor> { backStackEntry ->
+                    val route = backStackEntry.toRoute<ScriptEditor>()
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        EditorScreen(
+                            viewModelFactory = { appContainer.EditorViewModelFactory(route.scriptId) },
+                            onBackClick = { navController.popBackStack() },
+                        )
+                    }
+                }
+                composable<Devices> {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        DeviceManagerScreen(
+                            viewModelFactory = appContainer.deviceManagerViewModelFactory,
+                            onBackClick = { navController.popBackStack() },
+                        )
+                    }
                 }
             }
-            composable<Devices> {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    DeviceManagerScreen(
-                        viewModelFactory = appContainer.deviceManagerViewModelFactory,
-                        onBackClick = { navController.popBackStack() },
-                    )
-                }
-            }
+            ErrorDialog(viewModelFactory = appContainer.errorViewModelFactory)
         }
     }
 }
