@@ -1,42 +1,39 @@
 package glowie.glowie_app.scriptEditor.domain
 
+import glowie.glowie_app.common.scriptBits
 import glowie.glowie_app.devices.domain.DeviceManager
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlin.math.roundToInt
 
 private data class Color (
-    val hue: Float,
-    val saturation: Float,
-    val value: Float,
+    val r: Int,
+    val g: Int,
+    val b: Int,
 )
 
 class ColorLivePreview(
     val deviceManager: DeviceManager,
 ) {
-    private val colorFlow = MutableStateFlow(Color(0f, 0f, 0f))
+    private val colorFlow = MutableStateFlow(Color(0, 0, 0))
 
     /**
-     * Set the device color, with hue from 0-360, saturation and value from 0-1
+     * Set the device color, with r, g, b from 0-255
      * runLivePreview() must be running for this to take effect
      */
-    fun setColor(hue: Float, saturation: Float, value: Float) {
-        colorFlow.value = Color(hue, saturation, value)
+    fun setColor(r: Int, g: Int, b: Int) {
+        colorFlow.value = Color(r, g, b)
     }
 
     suspend fun runLivePreview() {
-        deviceManager.applyToAll { runScript("setColorRGB(0,0,0) stop()") }
+        deviceManager.applyToAll { runScript(scriptBits.stopAndClear) }
         try {
             colorFlow
                 .collect { color ->
-                    val scriptHue = (color.hue / 2).roundToInt() % 360
-                    val scriptSat = (color.saturation * 255f).roundToInt()
-                    val scriptVal = (color.value * 255f).roundToInt()
                     deviceManager.applyToAll {
-                        runScript("setColorHSV($scriptHue, $scriptSat, $scriptVal)")
+                        runScript(scriptBits.setColor(color.r, color.g, color.b))
                     }
                 }
         } finally {
-            deviceManager.applyToAll { runScript("setColorRGB(0,0,0)") }
+            deviceManager.applyToAll { runScript(scriptBits.stopAndClear) }
         }
     }
 }

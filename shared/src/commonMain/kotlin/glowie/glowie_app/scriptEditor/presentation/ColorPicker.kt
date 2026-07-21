@@ -69,8 +69,6 @@ fun ColorPicker(
     onColorChange: (hue: Float, saturation: Float, value: Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val clipboard = LocalClipboardManager.current
-
     Column(
         modifier = modifier.padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -112,34 +110,44 @@ fun ColorPicker(
 
         Spacer(Modifier.height(12.dp))
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth(),
+        copiableString(colorPickerState.copiableColorStringHSV)
+        copiableString(colorPickerState.copiableColorStringRGB)
+    }
+}
+
+@Composable
+private fun copiableString(
+    string: String
+) {
+    val clipboard = LocalClipboardManager.current
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = string,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+
+        Spacer(Modifier.width(8.dp))
+
+        Button(
+            onClick = {
+                clipboard.setText(AnnotatedString(string))
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            ),
+            contentPadding = ButtonDefaults.ContentPadding,
         ) {
-            Text(
-                text = colorPickerState.copiableColorString,
-                style = MaterialTheme.typography.bodyMedium,
+            Icon(
+                imageVector = content_copy,
+                contentDescription = "Copy",
+                modifier = Modifier.size(16.dp),
             )
-
-            Spacer(Modifier.width(8.dp))
-
-            Button(
-                onClick = {
-                    clipboard.setText(AnnotatedString(colorPickerState.copiableColorString))
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                ),
-                contentPadding = ButtonDefaults.ContentPadding,
-            ) {
-                Icon(
-                    imageVector = content_copy,
-                    contentDescription = "Copy",
-                    modifier = Modifier.size(16.dp),
-                )
-            }
         }
     }
 }

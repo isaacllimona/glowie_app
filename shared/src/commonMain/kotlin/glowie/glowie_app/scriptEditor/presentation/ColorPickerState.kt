@@ -5,5 +5,6 @@ data class ColorPickerState (
     val saturation: Float,
     val value: Float,
 
-    val copiableColorString: String
+    val copiableColorStringHSV: String,
+    val copiableColorStringRGB: String,
 )

@@ -1,5 +1,6 @@
 package glowie.glowie_app.launcher.domain
 
+import glowie.glowie_app.common.scriptBits
 import glowie.glowie_app.devices.domain.DeviceManager
 
 class LaunchScript (
@@ -8,14 +9,14 @@ class LaunchScript (
     suspend operator fun invoke(script: String) {
         val compacted_script = compactScript(script)
         deviceManager.applyToAll {
-            runScript("stop()")
+            runScript(scriptBits.stopAndClear)
             runScript(compacted_script)
         }
     }
 
     suspend fun stop() {
         deviceManager.applyToAll {
-            runScript("setColorRGB(0,0,0) stop()")
+            runScript(scriptBits.stopAndClear)
         }
     }
 }
