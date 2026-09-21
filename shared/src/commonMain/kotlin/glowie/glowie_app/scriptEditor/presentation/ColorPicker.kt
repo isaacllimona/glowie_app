@@ -118,13 +118,13 @@ fun ColorPicker(
 
         Spacer(Modifier.height(12.dp))
 
-        copiableString(copiableStringHSV)
-        copiableString(copiableStringRGB)
+        CopiableString(copiableStringHSV)
+        CopiableString(copiableStringRGB)
     }
 }
 
 @Composable
-private fun copiableString(
+private fun CopiableString(
     string: String
 ) {
     val clipboard = LocalClipboardManager.current

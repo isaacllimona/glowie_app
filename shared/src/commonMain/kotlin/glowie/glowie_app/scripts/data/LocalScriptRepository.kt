@@ -39,7 +39,7 @@ class LocalScriptRepository(
         val rawindex = fileSystem.read(indexFilename) ?: error("Script index does not exist")
         try {
             index = Json.decodeFromString<ScriptIndex>(rawindex).scripts.toMutableMap()
-        } catch (e: SerializationException) {
+        } catch (_: SerializationException) {
             error ("The script index could not be decoded")
         }
     }

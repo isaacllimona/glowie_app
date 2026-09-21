@@ -1,7 +1,5 @@
 package glowie.glowie_app.scriptEditor.presentation
 
-import glowie.glowie_app.scripts.domain.SaveStatus
-
 data class HSV(val hue: Float, val saturation: Float, val value: Float)
 
 data class SaveDialogUIState(
