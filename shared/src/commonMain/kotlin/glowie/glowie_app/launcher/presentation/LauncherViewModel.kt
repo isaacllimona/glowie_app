@@ -7,45 +7,50 @@ import glowie.glowie_app.scripts.domain.ScriptHeader
 import glowie.glowie_app.scripts.domain.ScriptRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class LauncherViewModel(
     private val scriptRepository: ScriptRepository,
     private val launchScript: LaunchScript,
 ) : ViewModel() {
-    private val _scripts = MutableStateFlow<List<ScriptHeader>>(emptyList())
-    val scripts = _scripts.asStateFlow()
+    private val _scriptListUIState = MutableStateFlow(ScriptListUIState(
+        scripts = emptyList(),
+        isRefreshing = false,
 
-    private val _runningScript = MutableStateFlow<ScriptHeader?>(null)
-    val runningScript = _runningScript.asStateFlow()
+        onScriptClick = ::onScriptClick,
+        onRefresh = ::onScriptListRefresh
+    ))
+    val scriptListUIState = _scriptListUIState.asStateFlow()
 
-    private val _isScriptListRefreshing = MutableStateFlow(false)
-    val isScriptListRefreshing = _isScriptListRefreshing.asStateFlow()
+    private val _runningScriptUIState = MutableStateFlow<RunningScriptUIState>(RunningScriptUIState.None)
+    val runningScriptUIState = _runningScriptUIState.asStateFlow()
 
     init {
         viewModelScope.launch {
-            _scripts.value = scriptRepository.listScripts()
+            val newScriptList = scriptRepository.listScripts()
+            _scriptListUIState.update { it.copy(scripts = newScriptList) }
         }
     }
 
-    fun onScriptListRefresh() {
-        _isScriptListRefreshing.value = true
+    private fun onScriptListRefresh() {
+        _scriptListUIState.update { it.copy(isRefreshing = true) }
         viewModelScope.launch {
-            _scripts.value = scriptRepository.listScripts()
-            _isScriptListRefreshing.value = false
+            val newScriptList = scriptRepository.listScripts()
+            _scriptListUIState.update { it.copy(scripts = newScriptList, isRefreshing = false) }
         }
     }
 
-    fun onScriptClick(script: ScriptHeader) {
+    private fun onScriptClick(script: ScriptHeader) {
         viewModelScope.launch {
-            _runningScript.value = script
             val scriptContent = scriptRepository.getScriptContent(script.id)
             launchScript(scriptContent)
+            _runningScriptUIState.value = RunningScriptUIState.Running(scriptName = script.metadata.name, onStop = ::stopRunningScript)
         }
     }
 
-    fun stopRunningScript() {
+    private fun stopRunningScript() {
         viewModelScope.launch { launchScript.stop() }
-        _runningScript.value = null
+        _runningScriptUIState.value = RunningScriptUIState.None
     }
 }

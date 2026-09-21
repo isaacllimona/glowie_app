@@ -28,61 +28,22 @@ fun EditorScreen(
     onBackClick: () -> Unit,
 ) {
     val viewModel = viewModel { viewModelFactory() }
-
-    val scriptText by viewModel.scriptText.collectAsStateWithLifecycle()
-
-    val showColorPicker by viewModel.showColorPicker.collectAsStateWithLifecycle()
-    val colorPickerState by viewModel.colorPickerState.collectAsStateWithLifecycle()
-
-    val saveDialogState by viewModel.saveDialogState.collectAsStateWithLifecycle()
-
-    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     EditorScreen(
-        scriptText = scriptText,
-        onScriptTextChange = viewModel::onScriptTextChange,
-        onLaunch = viewModel::onLaunch,
+        uiState = uiState,
         onBackClick = onBackClick,
-        showColorPicker = showColorPicker,
-
-        colorPickerState = colorPickerState,
-        onToggleColorPicker = viewModel::onToggleColorPicker,
-        onColorChange = viewModel::onColorChange,
-        runColorLivePreview = viewModel::runColorLivePreview,
-
-        saveDialogState = saveDialogState,
-        onSaveClick = viewModel::onSaveClick,
-        onSaveConfirm = viewModel::onSaveConfirm,
-        onSaveDismiss = viewModel::onSaveDismiss,
-
-        errorMessage = errorMessage,
-        onErrorDismiss = viewModel::onErrorDismiss
     )
 }
 
 @Composable
 fun EditorScreen(
-    scriptText: String,
-    onScriptTextChange: (String) -> Unit,
-    onLaunch: () -> Unit,
+    uiState: EditorUIState,
     onBackClick: () -> Unit,
-
-    showColorPicker: Boolean,
-    colorPickerState: ColorPickerState,
-    onToggleColorPicker: () -> Unit,
-    onColorChange: (hue: Float, saturation: Float, value: Float) -> Unit,
-    runColorLivePreview: suspend () -> Unit,
-
-    saveDialogState: SaveDialogState,
-    onSaveClick: () -> Unit,
-    onSaveConfirm: () -> Unit,
-    onSaveDismiss: () -> Unit,
-
-    errorMessage: String? = null,
-    onErrorDismiss: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .padding(16.dp),
     ) {
@@ -93,13 +54,13 @@ fun EditorScreen(
 
             Spacer(Modifier.weight(1f))
 
-            Button(onClick = onToggleColorPicker) {
+            Button(onClick = uiState.onColorPickerClick) {
                 Text("Color")
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            Button(onClick = onSaveClick) {
+            Button(onClick = uiState.onSaveClick) {
                 Text("Save")
             }
         }
@@ -107,8 +68,8 @@ fun EditorScreen(
         Spacer(Modifier.height(8.dp))
 
         OutlinedTextField(
-            value = scriptText,
-            onValueChange = onScriptTextChange,
+            value = uiState.scriptText,
+            onValueChange = uiState.onScriptTextChange,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
@@ -119,60 +80,48 @@ fun EditorScreen(
         Spacer(Modifier.height(16.dp))
 
         Button(
-            onClick = onLaunch,
+            onClick = uiState.onLaunchClick,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Launch")
         }
     }
 
-    if (showColorPicker) {
-        LaunchedEffect(runColorLivePreview) {
-            runColorLivePreview()
-        }
-
-        ColorPickerDialog(
-            colorPickerState = colorPickerState,
-            onColorChange = onColorChange,
-            onDismissRequest = onToggleColorPicker
-        )
-    }
-
-    if (saveDialogState is SaveDialogState.Show) {
-        SaveDialog(
-            saveStatus = saveDialogState.saveStatus,
-            onConfirm = onSaveConfirm,
-            onDismiss = onSaveDismiss,
-        )
-    }
-
-    if (errorMessage != null) {
-        AlertDialog(
-            onDismissRequest = onErrorDismiss,
-            title = { Text("Error") },
-            text = { Text(errorMessage) },
-            confirmButton = { TextButton(onClick = onErrorDismiss){ Text("OK") } },
-        )
+    when (uiState.dialog) {
+        is EditorDialogUIState.Save -> SaveDialog(uiState.dialog.state)
+        is EditorDialogUIState.ColorPicker -> ColorPickerDialog(uiState.dialog.state)
+        is EditorDialogUIState.Error -> ErrorDialog(uiState.dialog.state)
+        EditorDialogUIState.None -> Unit
     }
 }
 
 @Composable
 private fun SaveDialog(
-    saveStatus: SaveStatus.Ready,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
+    uiState: SaveDialogUIState
 ) {
-    val name = saveStatus.payload.metadata.name
+    val name = uiState.scriptName
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = uiState.onSaveDismiss,
         title = { Text("Save script") },
         text = { Text("Name: $name") },
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text("Save") }
+            TextButton(onClick = uiState.onSaveConfirm) { Text("Save") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = uiState.onSaveDismiss) { Text("Cancel") }
         },
+    )
+}
+
+@Composable
+private fun ErrorDialog(
+    uiState: ErrorDialogUIState
+) {
+    AlertDialog(
+        onDismissRequest = uiState.onDismiss,
+        title = { Text("Error") },
+        text = { Text(uiState.msg) },
+        confirmButton = { TextButton(onClick = uiState.onDismiss){ Text("OK") } },
     )
 }

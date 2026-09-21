@@ -21,6 +21,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,17 +47,21 @@ import kotlin.math.sqrt
 
 @Composable
 fun ColorPickerDialog(
-    colorPickerState: ColorPickerState,
-    onColorChange: (hue: Float, saturation: Float, value: Float) -> Unit,
-    onDismissRequest: () -> Unit,
+    uiState: ColorPickerDialogUIState,
 ) {
+    LaunchedEffect(uiState.runColorLivePreview) {
+        uiState.runColorLivePreview()
+    }
+
     AlertDialog(
-        onDismissRequest = onDismissRequest,
+        onDismissRequest = uiState.onDismiss,
         title = { Text("Color Picker") },
         text = {
             ColorPicker(
-                colorPickerState = colorPickerState,
-                onColorChange = onColorChange,
+                hsv = uiState.hsv,
+                copiableStringHSV = uiState.copiableColorStringHSV,
+                copiableStringRGB = uiState.copiableColorStringRGB,
+                onColorChange = uiState.onColorChange,
             )
         },
         confirmButton = {},
@@ -65,17 +70,20 @@ fun ColorPickerDialog(
 
 @Composable
 fun ColorPicker(
-    colorPickerState: ColorPickerState,
-    onColorChange: (hue: Float, saturation: Float, value: Float) -> Unit,
+    hsv: HSV,
+    copiableStringHSV: String,
+    copiableStringRGB: String,
+
+    onColorChange: (HSV) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier.padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        val hue = colorPickerState.hue
-        val saturation = colorPickerState.saturation
-        val value = colorPickerState.value
+        val hue = hsv.hue
+        val saturation = hsv.saturation
+        val value = hsv.value
 
         HueSaturationWheel(
             hue = hue,
@@ -94,7 +102,7 @@ fun ColorPicker(
 
         Slider(
             value = value,
-            onValueChange = { onColorChange(hue, saturation, it) },
+            onValueChange = { onColorChange(HSV(hue, saturation, it)) },
             valueRange = 0f..1f,
             modifier = Modifier.fillMaxWidth(),
             thumb = {
@@ -110,8 +118,8 @@ fun ColorPicker(
 
         Spacer(Modifier.height(12.dp))
 
-        copiableString(colorPickerState.copiableColorStringHSV)
-        copiableString(colorPickerState.copiableColorStringRGB)
+        copiableString(copiableStringHSV)
+        copiableString(copiableStringRGB)
     }
 }
 
@@ -157,7 +165,7 @@ private fun HueSaturationWheel(
     hue: Float,         // from 0-360
     saturation: Float,  // from 0-1
     value: Float,       // from 0-1
-    onColorChange: (hue: Float, saturation: Float, value: Float) -> Unit,
+    onColorChange: (HSV) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var wheelSize by remember { mutableStateOf(IntSize.Zero) }
@@ -179,7 +187,7 @@ private fun HueSaturationWheel(
                     val hueDeg = ((Math.toDegrees(angle.toDouble()) + 360) % 360).toFloat()
                     val sat = (distance / radius).coerceIn(0f, 1f)
 
-                    onColorChange(hueDeg, sat, value)
+                    onColorChange(HSV(hueDeg, sat, value))
                 }
             }
     ) {

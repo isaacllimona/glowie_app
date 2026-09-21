@@ -1,6 +1,5 @@
 package glowie.glowie_app.launcher.presentation
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,113 +35,49 @@ import glowie.glowie_app.scripts.domain.ScriptId
 fun LauncherScreen(
     viewModelFactory: () -> LauncherViewModel,
     onNewScriptClick: () -> Unit,
+    onEditScript: (scriptId: ScriptId) -> Unit,
     modifier: Modifier = Modifier,
-    onEditScript: (scriptId: ScriptId) -> Unit = {},
 ) {
     val launcherViewModel = viewModel { viewModelFactory() }
-    val scripts by launcherViewModel.scripts.collectAsStateWithLifecycle()
-    val runningScript by launcherViewModel.runningScript.collectAsStateWithLifecycle()
-    val isScriptListRefreshing by launcherViewModel.isScriptListRefreshing.collectAsStateWithLifecycle()
+    val scriptListUIState by launcherViewModel.scriptListUIState.collectAsStateWithLifecycle()
+    val runningScriptUIState by launcherViewModel.runningScriptUIState.collectAsStateWithLifecycle()
 
     LauncherScreen(
-        modifier = modifier,
+        scriptListUIState = scriptListUIState,
+        runningScriptUIState = runningScriptUIState,
 
-        scripts = scripts,
-        isScriptListRefreshing = isScriptListRefreshing,
-        onScriptListRefresh = launcherViewModel::onScriptListRefresh,
-        onScriptClick = launcherViewModel::onScriptClick,
+        modifier = modifier,
 
         onNewScriptClick = onNewScriptClick,
         onEditScript = onEditScript,
-
-        runningScript = runningScript,
-        onStopScript = launcherViewModel::stopRunningScript,
     )
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LauncherScreen(
+    scriptListUIState: ScriptListUIState,
+    runningScriptUIState: RunningScriptUIState,
+
     modifier: Modifier = Modifier,
-    // script list
-    scripts: List<ScriptHeader>,
-    isScriptListRefreshing: Boolean = false,
-    onScriptListRefresh: () -> Unit,
-    onScriptClick: (ScriptHeader) -> Unit = {},
-    // new/edit script
     onNewScriptClick: () -> Unit = {},
     onEditScript: (scriptId: ScriptId) -> Unit = {},
-    // running script
-    runningScript: ScriptHeader? = null,
-    onStopScript: () -> Unit = {},
 ) {
-    var expandedScript by remember { mutableStateOf<ScriptHeader?>(null) }
-
     Column(modifier = modifier.fillMaxWidth()) {
-        HorizontalDivider()
 
-        if (runningScript != null) {
-            Surface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.secondaryContainer,
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Running: ${runningScript.metadata.name}",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-                    TextButton(onClick = onStopScript) {
-                        Text("Stop")
-                    }
-                }
-            }
+        if (runningScriptUIState is RunningScriptUIState.Running) {
+            RunningScriptSurface(
+                uiState = runningScriptUIState
+            )
         }
 
-        PullToRefreshBox(
-            isRefreshing = isScriptListRefreshing,
-            onRefresh = onScriptListRefresh,
+        ScriptList(
+            state = scriptListUIState,
+            onEditScript = onEditScript,
             modifier = modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-        ) {
-            LazyColumn() {
-                items(scripts) { script ->
-                    Column {
-                        Text(
-                            text = script.metadata.name,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .combinedClickable(
-                                    onClick = { onScriptClick(script) },
-                                    onLongClick = { expandedScript = script },
-                                )
-                                .padding(vertical = 12.dp),
-                        )
-
-                        DropdownMenu(
-                            expanded = expandedScript == script,
-                            onDismissRequest = { expandedScript = null },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Edit") },
-                                onClick = {
-                                    expandedScript = null
-                                    onEditScript(script.id)
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        )
 
         HorizontalDivider()
 
@@ -158,3 +93,77 @@ fun LauncherScreen(
         Spacer(Modifier.height(16.dp))
     }
 }
+
+@Composable
+fun ScriptList(
+    state: ScriptListUIState,
+    onEditScript: (scriptId: ScriptId) -> Unit,
+    modifier: Modifier
+) {
+    var expandedScript by remember { mutableStateOf<ScriptHeader?>(null) }
+
+    PullToRefreshBox(
+        isRefreshing = state.isRefreshing,
+        onRefresh = state.onRefresh,
+        modifier = modifier
+    ) {
+        LazyColumn() {
+            items(state.scripts) { script ->
+                Column {
+                    Text(
+                        text = script.metadata.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .combinedClickable(
+                                onClick = { state.onScriptClick(script) },
+                                onLongClick = { expandedScript = script },
+                            )
+                            .padding(vertical = 12.dp),
+                    )
+
+                    DropdownMenu(
+                        expanded = expandedScript == script,
+                        onDismissRequest = { expandedScript = null },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Edit") },
+                            onClick = {
+                                expandedScript = null
+                                onEditScript(script.id)
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RunningScriptSurface(
+    uiState: RunningScriptUIState.Running,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Running: ${uiState.scriptName}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            TextButton(onClick = uiState.onStop) {
+                Text("Stop")
+            }
+        }
+    }
+}
+

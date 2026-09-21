@@ -12,15 +12,9 @@ import glowie.glowie_app.scripts.domain.ScriptId
 import glowie.glowie_app.scripts.domain.ScriptOrigin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
-
-sealed class SaveDialogState {
-    object Hide : SaveDialogState()
-    class Show (
-        val saveStatus: SaveStatus.Ready
-    ) : SaveDialogState()
-}
 
 class EditorViewModel(
     private val runCustomScript: RunCustomScript,
@@ -28,61 +22,65 @@ class EditorViewModel(
     private val colorLivePreview: ColorLivePreview,
     private val saveScript: SaveScript,
 ) : ViewModel() {
-    private val _scriptText = MutableStateFlow("")
-    val scriptText = _scriptText.asStateFlow()
-
-    private val _showColorPicker = MutableStateFlow(false)
-    val showColorPicker = _showColorPicker.asStateFlow()
-
-    private val _colorPickerState = MutableStateFlow(ColorPickerState(0f, 0f, 0f, "", ""))
-    val colorPickerState = _colorPickerState.asStateFlow()
-
-    private val _saveDialogState = MutableStateFlow<SaveDialogState>(SaveDialogState.Hide)
-    val saveDialogState = _saveDialogState.asStateFlow()
-
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage = _errorMessage.asStateFlow()
+    private val _uiState = MutableStateFlow(EditorUIState(
+        scriptText = "",
+        dialog = EditorDialogUIState.None,
+        onScriptTextChange = ::changeScriptText,
+        onSaveClick = ::saveScript,
+        onColorPickerClick = ::showColorPicker,
+        onLaunchClick = ::launchScript,
+    ))
+    val uiState = _uiState.asStateFlow()
 
     private var currentScriptId: ScriptId? = null
 
     fun openScript(scriptId: ScriptId) {
         viewModelScope.launch {
-            _scriptText.value = getScriptContent(scriptId)
+            changeScriptText(getScriptContent(scriptId))
         }
         currentScriptId = scriptId
     }
 
     fun newScript() {
-        _scriptText.value = ""
+        changeScriptText("")
         currentScriptId = null
     }
 
-    fun onScriptTextChange(text: String) {
-        _scriptText.value = text
+    private fun changeScriptText(text: String) {
+        _uiState.update { it.copy(scriptText = text) }
     }
 
-    fun onLaunch() {
+    private fun launchScript() {
         viewModelScope.launch {
-            runCustomScript(_scriptText.value)
+            runCustomScript(uiState.value.scriptText)
         }
     }
 
-    // ---- Script saving ----
+    private fun clearDialogs() {
+        _uiState.update{ it.copy(dialog = EditorDialogUIState.None) }
+    }
 
-    fun onSaveClick() {
-        val saveStatus = saveScript.prepareSave(scriptText.value, ScriptOrigin.User)
+    // ---- Script save dialog ----
+
+    private fun saveScript() {
+        val saveStatus = saveScript.prepareSave(uiState.value.scriptText, ScriptOrigin.User)
         when (saveStatus) {
             is SaveStatus.Invalid -> showError(saveStatus.msg)
-            is SaveStatus.Ready -> _saveDialogState.value = SaveDialogState.Show(saveStatus = saveStatus)
+            is SaveStatus.Ready -> _uiState.update {
+                it.copy(
+                    dialog = EditorDialogUIState.Save(
+                        state = SaveDialogUIState(
+                            scriptName = saveStatus.payload.metadata.name,
+                            onSaveConfirm = { onSaveConfirm(saveStatus) },
+                            onSaveDismiss = ::clearDialogs
+                        )
+                    )
+                )
+            }
         }
     }
 
-    fun onSaveDismiss() {
-        _saveDialogState.value = SaveDialogState.Hide
-    }
-
-    fun onSaveConfirm() {
-        val saveStatus = (saveDialogState.value as SaveDialogState.Show).saveStatus
+    private fun onSaveConfirm(saveStatus: SaveStatus.Ready) {
         viewModelScope.launch {
             try {
                 saveScript.save(saveStatus)
@@ -90,50 +88,70 @@ class EditorViewModel(
                 showError("Error saving script: ${e.message}")
                 return@launch
             } finally {
-                _saveDialogState.value = SaveDialogState.Hide
+                clearDialogs()
             }
             currentScriptId = saveStatus.payload.id
         }
     }
 
     // ---- Error message ----
-    private fun showError(message: String) { _errorMessage.value = message }
 
-    fun onErrorDismiss() {
-        _errorMessage.value = null
+    private fun showError(message: String) {
+        _uiState.update {
+            it.copy(
+                dialog = EditorDialogUIState.Error(
+                    state = ErrorDialogUIState(
+                        msg = message,
+                        onDismiss = ::clearDialogs
+                    )
+                )
+            )
+        }
     }
 
     // ---- Color picker ----
 
-    fun onToggleColorPicker() {
-        _showColorPicker.value = !_showColorPicker.value
-    }
+    private var colorPickerHSV = HSV(0f, 0f, 1f)
 
-    private fun makeColorStringHSV(hue: Float, saturation: Float, value: Float) : String {
-        val deviceHue = (hue / 2f).roundToInt()
-        val deviceSat = (saturation * 255f).roundToInt()
-        val deviceVal = (value * 255f).roundToInt()
-        return "h=$deviceHue s=$deviceSat v=$deviceVal"
-    }
+    private fun showColorPicker() {
+        val hsv = colorPickerHSV
 
-    private fun makeColorStringRGB(r: Int, g: Int, b: Int) : String = "r=$r g=$g b=$b"
-
-    fun onColorChange(hue: Float, saturation: Float, value: Float) {
-        val color = Color.hsv(hue, saturation, value)
+        val color = Color.hsv(hsv.hue, hsv.saturation, hsv.value)
         val r = (color.red * 255).roundToInt()
         val g = (color.green * 255).roundToInt()
         val b = (color.blue * 255).roundToInt()
 
-        val copiableStringHSV = makeColorStringHSV(hue, saturation, value)
+        val copiableStringHSV = makeColorStringHSV(hsv)
         val copiableStringRGB = makeColorStringRGB(r, g, b)
 
-        _colorPickerState.value = ColorPickerState(
-            hue, saturation, value,
-            copiableStringHSV, copiableStringRGB)
+        _uiState.update {
+            it.copy(
+                dialog = EditorDialogUIState.ColorPicker(
+                    state = ColorPickerDialogUIState(
+                        hsv = hsv,
+                        copiableColorStringHSV = copiableStringHSV,
+                        copiableColorStringRGB = copiableStringRGB,
+
+                        onDismiss = ::clearDialogs,
+                        onColorChange = { hsv ->
+                            colorPickerHSV = hsv
+                            showColorPicker()
+                        },
+                        runColorLivePreview = colorLivePreview::runLivePreview
+                    )
+                )
+            )
+        }
+
         colorLivePreview.setColor(r, g, b)
     }
 
-    suspend fun runColorLivePreview() {
-        colorLivePreview.runLivePreview()
+    private fun makeColorStringHSV(hsv: HSV) : String {
+        val deviceHue = (hsv.hue / 2f).roundToInt()
+        val deviceSat = (hsv.saturation * 255f).roundToInt()
+        val deviceVal = (hsv.value * 255f).roundToInt()
+        return "h=$deviceHue s=$deviceSat v=$deviceVal"
     }
+
+    private fun makeColorStringRGB(r: Int, g: Int, b: Int) : String = "r=$r g=$g b=$b"
 }
