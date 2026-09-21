@@ -74,4 +74,15 @@ class LocalScriptRepository(
         index[id] = newScriptIndexEntry
         saveIndex()
     }
+
+    override suspend fun deleteScript(scriptId: ScriptId) {
+        val entry = index[scriptId] ?: return
+
+        // Delete script file
+        fileSystem.delete(entry.filename)
+
+        // Update index
+        index.remove(scriptId)
+        saveIndex()
+    }
 }

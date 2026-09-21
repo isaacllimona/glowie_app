@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -20,15 +21,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import glowie.glowie_app.scripts.domain.ScriptHeader
 import glowie.glowie_app.scripts.domain.ScriptId
 
 @Composable
@@ -71,7 +68,7 @@ fun LauncherScreen(
         }
 
         ScriptList(
-            state = scriptListUIState,
+            uiState = scriptListUIState,
             onEditScript = onEditScript,
             modifier = modifier
                 .weight(1f)
@@ -92,23 +89,25 @@ fun LauncherScreen(
 
         Spacer(Modifier.height(16.dp))
     }
+
+    if (scriptListUIState.dialogState is ScriptDialogUIState.DeleteScript) {
+        DeleteScriptDialog(scriptListUIState.dialogState)
+    }
 }
 
 @Composable
 fun ScriptList(
-    state: ScriptListUIState,
+    uiState: ScriptListUIState,
     onEditScript: (scriptId: ScriptId) -> Unit,
     modifier: Modifier
 ) {
-    var expandedScript by remember { mutableStateOf<ScriptHeader?>(null) }
-
     PullToRefreshBox(
-        isRefreshing = state.isRefreshing,
-        onRefresh = state.onRefresh,
+        isRefreshing = uiState.isRefreshing,
+        onRefresh = uiState.onRefresh,
         modifier = modifier
     ) {
         LazyColumn() {
-            items(state.scripts) { script ->
+            items(uiState.scripts) { script ->
                 Column {
                     Text(
                         text = script.metadata.name,
@@ -116,28 +115,51 @@ fun ScriptList(
                         modifier = Modifier
                             .fillMaxWidth()
                             .combinedClickable(
-                                onClick = { state.onScriptClick(script) },
-                                onLongClick = { expandedScript = script },
+                                onClick = { uiState.onScriptClick(script) },
+                                onLongClick = { uiState.onScriptLongClick(script) },
                             )
                             .padding(vertical = 12.dp),
                     )
 
                     DropdownMenu(
-                        expanded = expandedScript == script,
-                        onDismissRequest = { expandedScript = null },
+                        expanded = uiState.dropdownState.expandedScript == script,
+                        onDismissRequest = uiState.dropdownState.onDismiss,
                     ) {
                         DropdownMenuItem(
                             text = { Text("Edit") },
                             onClick = {
-                                expandedScript = null
+                                uiState.dropdownState.onDismiss()
                                 onEditScript(script.id)
                             },
                         )
+                        if (uiState.dropdownState.showDelete) {
+                            DropdownMenuItem(
+                                text = { Text("Delete") },
+                                onClick = uiState.dropdownState.onDelete
+                            )
+                        }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+fun DeleteScriptDialog(
+    uiState: ScriptDialogUIState.DeleteScript
+) {
+    AlertDialog(
+        onDismissRequest = uiState.onDismiss,
+        title = { Text("Delete script") },
+        text = { Text("Delete \"${uiState.script.metadata.name}\"?") },
+        confirmButton = {
+            TextButton(onClick = uiState.onConfirm) { Text("Delete") }
+        },
+        dismissButton = {
+            TextButton(onClick = uiState.onDismiss) { Text("Cancel") }
+        },
+    )
 }
 
 @Composable
