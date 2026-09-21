@@ -4,7 +4,6 @@ import glowie.glowie_app.scripts.domain.ScriptHeader
 import glowie.glowie_app.scripts.domain.ScriptId
 import glowie.glowie_app.scripts.domain.ScriptMetadata
 import glowie.glowie_app.scripts.domain.ScriptRepository
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
@@ -62,7 +61,7 @@ class LocalScriptRepository(
     }
 
     override suspend fun saveScript(id: ScriptId, metadata: ScriptMetadata, content: String) {
-        val filename = "$id.lua"
+        val filename = "${id.value}.lua"
         val newScriptIndexEntry = ScriptIndexEntry(
             metadata = metadata,
             filename = filename,
@@ -72,7 +71,6 @@ class LocalScriptRepository(
         fileSystem.write(filename, content)
 
         // Update index
-        index[id]?.let { fileSystem.delete(it.filename) }  // delete the old file if the script already exists
         index[id] = newScriptIndexEntry
         saveIndex()
     }
