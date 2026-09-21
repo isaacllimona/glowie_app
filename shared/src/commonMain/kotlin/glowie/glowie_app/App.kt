@@ -24,12 +24,13 @@ import glowie.glowie_app.control.presentation.ControlBar
 import glowie.glowie_app.devices.presentation.DeviceManagerScreen
 import glowie.glowie_app.launcher.presentation.LauncherScreen
 import glowie.glowie_app.scriptEditor.presentation.EditorScreen
+import glowie.glowie_app.scripts.domain.ScriptId
 import kotlinx.serialization.Serializable
 
 @Serializable
 object Home
 @Serializable
-data class ScriptEditor(val scriptId: String = "")
+data class ScriptEditor(val scriptId: String? = null)
 @Serializable
 object Devices
 
@@ -50,7 +51,7 @@ fun App(appContainer: AppContainer) {
                         LauncherScreen(
                             viewModelFactory = appContainer.launcherViewModelFactory,
                             onNewScriptClick = { navController.navigate(ScriptEditor()) },
-                            onEditScript = { scriptId -> navController.navigate(ScriptEditor(scriptId = scriptId)) },
+                            onEditScript = { scriptId -> navController.navigate(ScriptEditor(scriptId = scriptId.value)) },
                             modifier = Modifier.weight(1f),
                         )
 
@@ -68,7 +69,12 @@ fun App(appContainer: AppContainer) {
                     val route = backStackEntry.toRoute<ScriptEditor>()
                     Column(modifier = Modifier.fillMaxSize()) {
                         EditorScreen(
-                            viewModelFactory = { appContainer.EditorViewModelFactory(route.scriptId) },
+                            viewModelFactory = {
+                                appContainer.EditorViewModelFactory().apply {
+                                    if (route.scriptId != null) openScript(ScriptId(route.scriptId))
+                                    else newScript()
+                                }
+                            },
                             onBackClick = { navController.popBackStack() },
                         )
                     }

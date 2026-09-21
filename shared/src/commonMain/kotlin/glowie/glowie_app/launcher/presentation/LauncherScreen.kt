@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,42 +29,54 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import glowie.glowie_app.launcher.domain.Script
+import glowie.glowie_app.scripts.domain.ScriptHeader
+import glowie.glowie_app.scripts.domain.ScriptId
 
 @Composable
 fun LauncherScreen(
     viewModelFactory: () -> LauncherViewModel,
     onNewScriptClick: () -> Unit,
     modifier: Modifier = Modifier,
-    onEditScript: (scriptId: String) -> Unit = {},
+    onEditScript: (scriptId: ScriptId) -> Unit = {},
 ) {
     val launcherViewModel = viewModel { viewModelFactory() }
     val scripts by launcherViewModel.scripts.collectAsStateWithLifecycle()
     val runningScript by launcherViewModel.runningScript.collectAsStateWithLifecycle()
+    val isScriptListRefreshing by launcherViewModel.isScriptListRefreshing.collectAsStateWithLifecycle()
 
     LauncherScreen(
+        modifier = modifier,
+
         scripts = scripts,
-        runningScript = runningScript,
+        isScriptListRefreshing = isScriptListRefreshing,
+        onScriptListRefresh = launcherViewModel::onScriptListRefresh,
         onScriptClick = launcherViewModel::onScriptClick,
-        onStopScript = launcherViewModel::stopRunningScript,
+
         onNewScriptClick = onNewScriptClick,
         onEditScript = onEditScript,
-        modifier = modifier,
+
+        runningScript = runningScript,
+        onStopScript = launcherViewModel::stopRunningScript,
     )
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LauncherScreen(
-    scripts: List<Script>,
-    runningScript: Script? = null,
-    onScriptClick: (String) -> Unit = {},
-    onStopScript: () -> Unit = {},
-    onNewScriptClick: () -> Unit = {},
-    onEditScript: (scriptId: String) -> Unit = {},
     modifier: Modifier = Modifier,
+    // script list
+    scripts: List<ScriptHeader>,
+    isScriptListRefreshing: Boolean = false,
+    onScriptListRefresh: () -> Unit,
+    onScriptClick: (ScriptHeader) -> Unit = {},
+    // new/edit script
+    onNewScriptClick: () -> Unit = {},
+    onEditScript: (scriptId: ScriptId) -> Unit = {},
+    // running script
+    runningScript: ScriptHeader? = null,
+    onStopScript: () -> Unit = {},
 ) {
-    var expandedScriptId by remember { mutableStateOf<String?>(null) }
+    var expandedScript by remember { mutableStateOf<ScriptHeader?>(null) }
 
     Column(modifier = modifier.fillMaxWidth()) {
         HorizontalDivider()
@@ -80,7 +93,7 @@ fun LauncherScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Running: ${runningScript.name}",
+                            text = "Running: ${runningScript.metadata.name}",
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
@@ -91,37 +104,41 @@ fun LauncherScreen(
             }
         }
 
-        LazyColumn(
-            modifier = Modifier
+        PullToRefreshBox(
+            isRefreshing = isScriptListRefreshing,
+            onRefresh = onScriptListRefresh,
+            modifier = modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
         ) {
-            items(scripts) { script ->
-                Column {
-                    Text(
-                        text = script.name,
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .combinedClickable(
-                                onClick = { onScriptClick(script.id) },
-                                onLongClick = { expandedScriptId = script.id },
-                            )
-                            .padding(vertical = 12.dp),
-                    )
-
-                    DropdownMenu(
-                        expanded = expandedScriptId == script.id,
-                        onDismissRequest = { expandedScriptId = null },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Edit") },
-                            onClick = {
-                                expandedScriptId = null
-                                onEditScript(script.id)
-                            },
+            LazyColumn() {
+                items(scripts) { script ->
+                    Column {
+                        Text(
+                            text = script.metadata.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .combinedClickable(
+                                    onClick = { onScriptClick(script) },
+                                    onLongClick = { expandedScript = script },
+                                )
+                                .padding(vertical = 12.dp),
                         )
+
+                        DropdownMenu(
+                            expanded = expandedScript == script,
+                            onDismissRequest = { expandedScript = null },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Edit") },
+                                onClick = {
+                                    expandedScript = null
+                                    onEditScript(script.id)
+                                },
+                            )
+                        }
                     }
                 }
             }

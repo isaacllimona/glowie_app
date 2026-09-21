@@ -14,10 +14,12 @@ import glowie.glowie_app.scriptEditor.domain.GetScriptContent
 import glowie.glowie_app.scriptEditor.domain.RunCustomScript
 import glowie.glowie_app.scriptEditor.domain.ColorLivePreview
 import glowie.glowie_app.scriptEditor.presentation.EditorViewModel
-import glowie.glowie_app.launcher.data.BuiltinScriptRepository
 import glowie.glowie_app.launcher.domain.LaunchScript
-import glowie.glowie_app.launcher.domain.LaunchScriptFromID
 import glowie.glowie_app.launcher.presentation.LauncherViewModel
+import glowie.glowie_app.scripts.data.BuiltinScriptRepository
+import glowie.glowie_app.scripts.data.LocalScriptRepository
+import glowie.glowie_app.scripts.domain.ImportBuiltinScripts
+import glowie.glowie_app.scripts.domain.SaveScript
 import glowie.glowie_app.syncClock.domain.SyncClockBroadcaster
 
 class AppContainer() {
@@ -29,7 +31,7 @@ class AppContainer() {
     private val controlState = ControlState()
     private val mergedCmdErrFlow = MergedCmdErrFlow(deviceManager)
 
-    private val scriptRepository = BuiltinScriptRepository()
+    private val scriptRepository = LocalScriptRepository()
 
     // Headless app
     val headlessApp = HeadlessApp(
@@ -37,7 +39,8 @@ class AppContainer() {
         DeviceWatcher(deviceManager),
         ControlDispatcher(controlState, deviceManager),
         SyncClockBroadcaster(deviceManager),
-        deviceManager
+        deviceManager,
+        ImportBuiltinScripts(SaveScript(scriptRepository), BuiltinScriptRepository())
     )
 
     // Define viewmodel factories
@@ -45,14 +48,15 @@ class AppContainer() {
         ControlViewModel(controlState)
     }
     val launcherViewModelFactory = {
-        val launchScriptFromID = LaunchScriptFromID(scriptRepository, LaunchScript(deviceManager))
-        LauncherViewModel(scriptRepository, launchScriptFromID)
+        val launchScript = LaunchScript(deviceManager)
+        LauncherViewModel(scriptRepository, launchScript)
     }
-    val EditorViewModelFactory = { scriptId: String ->
+    val EditorViewModelFactory = {
         val runCustomScript = RunCustomScript(LaunchScript(deviceManager))
         val getScriptContent = GetScriptContent(scriptRepository)
         val colorLivePreview = ColorLivePreview(deviceManager)
-        EditorViewModel(runCustomScript, getScriptContent, colorLivePreview, scriptId)
+        val saveUserScript = SaveScript(scriptRepository)
+        EditorViewModel(runCustomScript, getScriptContent, colorLivePreview, saveUserScript)
     }
     val deviceManagerViewModelFactory = {
         DeviceManagerViewModel(deviceManager)

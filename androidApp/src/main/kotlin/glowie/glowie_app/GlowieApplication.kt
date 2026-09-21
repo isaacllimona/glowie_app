@@ -5,10 +5,14 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 class GlowieApplication : Application() {
-    val appContainer = AppContainer()
+    lateinit var appContainer: AppContainer
 
     override fun onCreate() {
         super.onCreate()
+
+        AppContextProvider.init(this)
+        appContainer = AppContainer()
+
         GlobalScope.launch {
             appContainer.headlessApp()
         }

@@ -6,34 +6,55 @@ import androidx.lifecycle.viewModelScope
 import glowie.glowie_app.scriptEditor.domain.GetScriptContent
 import glowie.glowie_app.scriptEditor.domain.RunCustomScript
 import glowie.glowie_app.scriptEditor.domain.ColorLivePreview
+import glowie.glowie_app.scripts.domain.SaveStatus
+import glowie.glowie_app.scripts.domain.SaveScript
+import glowie.glowie_app.scripts.domain.ScriptId
+import glowie.glowie_app.scripts.domain.ScriptOrigin
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
+sealed class SaveDialogState {
+    object Hide : SaveDialogState()
+    class Show (
+        val saveStatus: SaveStatus.Ready
+    ) : SaveDialogState()
+}
 
 class EditorViewModel(
     private val runCustomScript: RunCustomScript,
     private val getScriptContent: GetScriptContent,
     private val colorLivePreview: ColorLivePreview,
-    private val scriptId: String = "",
+    private val saveScript: SaveScript,
 ) : ViewModel() {
     private val _scriptText = MutableStateFlow("")
-    val scriptText: StateFlow<String> = _scriptText.asStateFlow()
+    val scriptText = _scriptText.asStateFlow()
 
     private val _showColorPicker = MutableStateFlow(false)
-    val showColorPicker: StateFlow<Boolean> = _showColorPicker.asStateFlow()
+    val showColorPicker = _showColorPicker.asStateFlow()
 
     private val _colorPickerState = MutableStateFlow(ColorPickerState(0f, 0f, 0f, "", ""))
-    val colorPickerState: StateFlow<ColorPickerState> = _colorPickerState
+    val colorPickerState = _colorPickerState.asStateFlow()
 
-    init {
-        if (scriptId.isNotEmpty()) {
-            viewModelScope.launch {
-                _scriptText.value = getScriptContent(scriptId)
-            }
+    private val _saveDialogState = MutableStateFlow<SaveDialogState>(SaveDialogState.Hide)
+    val saveDialogState = _saveDialogState.asStateFlow()
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage = _errorMessage.asStateFlow()
+
+    private var currentScriptId: ScriptId? = null
+
+    fun openScript(scriptId: ScriptId) {
+        viewModelScope.launch {
+            _scriptText.value = getScriptContent(scriptId)
         }
+        currentScriptId = scriptId
+    }
+
+    fun newScript() {
+        _scriptText.value = ""
+        currentScriptId = null
     }
 
     fun onScriptTextChange(text: String) {
@@ -44,6 +65,42 @@ class EditorViewModel(
         viewModelScope.launch {
             runCustomScript(_scriptText.value)
         }
+    }
+
+    // ---- Script saving ----
+
+    fun onSaveClick() {
+        val saveStatus = saveScript.prepareSave(scriptText.value, ScriptOrigin.User)
+        when (saveStatus) {
+            is SaveStatus.Invalid -> showError(saveStatus.msg)
+            is SaveStatus.Ready -> _saveDialogState.value = SaveDialogState.Show(saveStatus = saveStatus)
+        }
+    }
+
+    fun onSaveDismiss() {
+        _saveDialogState.value = SaveDialogState.Hide
+    }
+
+    fun onSaveConfirm() {
+        val saveStatus = (saveDialogState.value as SaveDialogState.Show).saveStatus
+        viewModelScope.launch {
+            try {
+                saveScript.save(saveStatus)
+            } catch (e: Exception) {
+                showError("Error saving script: ${e.message}")
+                return@launch
+            } finally {
+                _saveDialogState.value = SaveDialogState.Hide
+            }
+            currentScriptId = saveStatus.payload.id
+        }
+    }
+
+    // ---- Error message ----
+    private fun showError(message: String) { _errorMessage.value = message }
+
+    fun onErrorDismiss() {
+        _errorMessage.value = null
     }
 
     // ---- Color picker ----

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -19,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import glowie.glowie_app.scripts.domain.SaveStatus
 
 @Composable
 fun EditorScreen(
@@ -28,8 +30,13 @@ fun EditorScreen(
     val viewModel = viewModel { viewModelFactory() }
 
     val scriptText by viewModel.scriptText.collectAsStateWithLifecycle()
+
     val showColorPicker by viewModel.showColorPicker.collectAsStateWithLifecycle()
     val colorPickerState by viewModel.colorPickerState.collectAsStateWithLifecycle()
+
+    val saveDialogState by viewModel.saveDialogState.collectAsStateWithLifecycle()
+
+    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
 
     EditorScreen(
         scriptText = scriptText,
@@ -37,10 +44,19 @@ fun EditorScreen(
         onLaunch = viewModel::onLaunch,
         onBackClick = onBackClick,
         showColorPicker = showColorPicker,
+
         colorPickerState = colorPickerState,
         onToggleColorPicker = viewModel::onToggleColorPicker,
         onColorChange = viewModel::onColorChange,
         runColorLivePreview = viewModel::runColorLivePreview,
+
+        saveDialogState = saveDialogState,
+        onSaveClick = viewModel::onSaveClick,
+        onSaveConfirm = viewModel::onSaveConfirm,
+        onSaveDismiss = viewModel::onSaveDismiss,
+
+        errorMessage = errorMessage,
+        onErrorDismiss = viewModel::onErrorDismiss
     )
 }
 
@@ -56,6 +72,14 @@ fun EditorScreen(
     onToggleColorPicker: () -> Unit,
     onColorChange: (hue: Float, saturation: Float, value: Float) -> Unit,
     runColorLivePreview: suspend () -> Unit,
+
+    saveDialogState: SaveDialogState,
+    onSaveClick: () -> Unit,
+    onSaveConfirm: () -> Unit,
+    onSaveDismiss: () -> Unit,
+
+    errorMessage: String? = null,
+    onErrorDismiss: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -71,6 +95,12 @@ fun EditorScreen(
 
             Button(onClick = onToggleColorPicker) {
                 Text("Color")
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Button(onClick = onSaveClick) {
+                Text("Save")
             }
         }
 
@@ -107,4 +137,42 @@ fun EditorScreen(
             onDismissRequest = onToggleColorPicker
         )
     }
+
+    if (saveDialogState is SaveDialogState.Show) {
+        SaveDialog(
+            saveStatus = saveDialogState.saveStatus,
+            onConfirm = onSaveConfirm,
+            onDismiss = onSaveDismiss,
+        )
+    }
+
+    if (errorMessage != null) {
+        AlertDialog(
+            onDismissRequest = onErrorDismiss,
+            title = { Text("Error") },
+            text = { Text(errorMessage) },
+            confirmButton = { TextButton(onClick = onErrorDismiss){ Text("OK") } },
+        )
+    }
+}
+
+@Composable
+private fun SaveDialog(
+    saveStatus: SaveStatus.Ready,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val name = saveStatus.payload.metadata.name
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Save script") },
+        text = { Text("Name: $name") },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text("Save") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
