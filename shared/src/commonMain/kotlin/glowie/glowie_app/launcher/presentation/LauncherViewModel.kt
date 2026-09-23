@@ -18,16 +18,8 @@ class LauncherViewModel(
     private val _scriptListUIState = MutableStateFlow(ScriptListUIState(
         scripts = emptyList(),
         isRefreshing = false,
-        dialogState = ScriptDialogUIState.None,
-        dropdownState = ScriptDropdownUIState(
-            expandedScript = null,
-            showDelete = false,
-            onDismiss = {},
-            onDelete = {},
-        ),
+        dialogState = ScriptListDialogUIState.None,
         onRefresh = ::refreshScriptList,
-        onScriptClick = ::launchScript,
-        onScriptLongClick = ::showDropdown
     ))
     val scriptListUIState = _scriptListUIState.asStateFlow()
 
@@ -35,16 +27,21 @@ class LauncherViewModel(
     val runningScriptUIState = _runningScriptUIState.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            val newScriptList = scriptRepository.listScripts()
-            _scriptListUIState.update { it.copy(scripts = newScriptList) }
-        }
+        refreshScriptList()
     }
 
     private fun refreshScriptList() {
         _scriptListUIState.update { it.copy(isRefreshing = true) }
         viewModelScope.launch {
             val newScriptList = scriptRepository.listScripts()
+                .map { scriptHeader ->
+                    ScriptUIState(
+                        scriptHeader = scriptHeader,
+                        showDelete = showDeleteForScript(scriptHeader),
+                        onLaunch = { launchScript(scriptHeader) },
+                        onDelete = { requestScriptDelete(scriptHeader) },
+                    )
+                }
             _scriptListUIState.update { it.copy(scripts = newScriptList, isRefreshing = false) }
         }
     }
@@ -62,43 +59,19 @@ class LauncherViewModel(
         _runningScriptUIState.value = RunningScriptUIState.None
     }
 
-    private fun showDropdown(script: ScriptHeader) {
-        _scriptListUIState.update { it.copy(
-            dropdownState = ScriptDropdownUIState(
-                expandedScript = script,
-                showDelete = showDeleteOptionInDropdown(script),
-                onDismiss = ::hideDropdown,
-                onDelete = {
-                    hideDropdown()
-                    requestScriptDelete(script)
-                },
-            )
-        ) }
-    }
-
-    private fun hideDropdown() {
-        _scriptListUIState.update {
-            it.copy(dropdownState = it.dropdownState.copy(expandedScript = null))
-        }
-    }
-
-    private fun showDeleteOptionInDropdown(script: ScriptHeader): Boolean =
+    private fun showDeleteForScript(script: ScriptHeader): Boolean =
         script.metadata.origin == ScriptOrigin.User
 
     private fun requestScriptDelete(script: ScriptHeader) {
         _scriptListUIState.update {
             it.copy(
-                dialogState = ScriptDialogUIState.DeleteScript(
-                    script = script,
+                dialogState = ScriptListDialogUIState.DeleteScript(
+                    scriptName = script.metadata.name,
                     onConfirm = { confirmScriptDelete(script) },
                     onDismiss = ::hideDeleteDialog,
                 )
             )
         }
-    }
-
-    private fun hideDeleteDialog() {
-        _scriptListUIState.update { it.copy(dialogState = ScriptDialogUIState.None) }
     }
 
     private fun confirmScriptDelete(script: ScriptHeader) {
@@ -107,5 +80,9 @@ class LauncherViewModel(
             hideDeleteDialog()
             refreshScriptList()
         }
+    }
+
+    private fun hideDeleteDialog() {
+        _scriptListUIState.update { it.copy(dialogState = ScriptListDialogUIState.None) }
     }
 }

@@ -2,29 +2,27 @@ package glowie.glowie_app.launcher.presentation
 
 import glowie.glowie_app.scripts.domain.ScriptHeader
 
-sealed interface ScriptDialogUIState {
-    object None : ScriptDialogUIState
+sealed interface ScriptListDialogUIState {
+    object None : ScriptListDialogUIState
     data class DeleteScript(
-        val script: ScriptHeader,
+        val scriptName: String,
         val onConfirm: () -> Unit,
         val onDismiss: () -> Unit,
-    ) : ScriptDialogUIState
+    ) : ScriptListDialogUIState
 }
 
-data class ScriptDropdownUIState (
-    val expandedScript: ScriptHeader?,
+data class ScriptUIState (
+    val scriptHeader : ScriptHeader,
     val showDelete: Boolean,
-    val onDismiss: () -> Unit,
+
+    val onLaunch: () -> Unit,
     val onDelete: () -> Unit,
 )
 
 data class ScriptListUIState (
-    val scripts: List<ScriptHeader>,
+    val scripts: List<ScriptUIState>,
     val isRefreshing: Boolean,
-    val dropdownState: ScriptDropdownUIState,
-    val dialogState: ScriptDialogUIState,
+    val dialogState: ScriptListDialogUIState,
 
     val onRefresh: () -> Unit,
-    val onScriptClick: (ScriptHeader) -> Unit,
-    val onScriptLongClick: (ScriptHeader) -> Unit,
 )
