@@ -3,6 +3,7 @@ package glowie.glowie_app
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import glowie.glowie_app.presentation.App
 import kotlinx.coroutines.launch
 
 fun main() = application {

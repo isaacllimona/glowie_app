@@ -1,26 +1,24 @@
 package glowie.glowie_app
 
-import glowie.glowie_app.cmderrors.presentation.ErrorViewModel
-import glowie.glowie_app.cmderrors.domain.MergedCmdErrFlow
-import glowie.glowie_app.comms.internal.BLE.KableGlowieScanner
-import glowie.glowie_app.control.domain.ControlDispatcher
-import glowie.glowie_app.control.domain.ControlState
-import glowie.glowie_app.control.presentation.ControlViewModel
-import glowie.glowie_app.devices.domain.DeviceManager
-import glowie.glowie_app.devices.domain.DeviceWatcher
-import glowie.glowie_app.devices.domain.GlowieDiscovery
-import glowie.glowie_app.devices.presentation.DeviceManagerViewModel
-import glowie.glowie_app.scriptEditor.domain.GetScriptContent
-import glowie.glowie_app.scriptEditor.domain.RunCustomScript
-import glowie.glowie_app.scriptEditor.domain.ColorLivePreview
-import glowie.glowie_app.scriptEditor.presentation.EditorViewModel
-import glowie.glowie_app.launcher.domain.LaunchScript
-import glowie.glowie_app.launcher.presentation.LauncherViewModel
-import glowie.glowie_app.scripts.data.BuiltinScriptRepository
-import glowie.glowie_app.scripts.data.LocalScriptRepository
-import glowie.glowie_app.scripts.domain.ImportBuiltinScripts
-import glowie.glowie_app.scripts.domain.SaveScript
-import glowie.glowie_app.syncClock.domain.SyncClockBroadcaster
+import glowie.glowie_app.presentation.cmderrors.ErrorViewModel
+import glowie.glowie_app.core.devices.monitoring.MergedCmdErrFlow
+import glowie.glowie_app.comms.BLE.KableGlowieScanner
+import glowie.glowie_app.core.devices.control.ControlDispatcher
+import glowie.glowie_app.core.devices.control.ControlState
+import glowie.glowie_app.presentation.control.ControlViewModel
+import glowie.glowie_app.core.devices.management.DeviceManager
+import glowie.glowie_app.core.devices.management.DeviceWatcher
+import glowie.glowie_app.core.devices.management.GlowieDiscovery
+import glowie.glowie_app.presentation.devices.DeviceManagerViewModel
+import glowie.glowie_app.core.devices.control.ColorLivePreview
+import glowie.glowie_app.presentation.scriptEditor.EditorViewModel
+import glowie.glowie_app.core.devices.control.LaunchScript
+import glowie.glowie_app.presentation.launcher.LauncherViewModel
+import glowie.glowie_app.data.scripts.BuiltinScriptRepository
+import glowie.glowie_app.data.scripts.LocalScriptRepository
+import glowie.glowie_app.core.scripts.services.ImportBuiltinScripts
+import glowie.glowie_app.core.scripts.services.SaveScript
+import glowie.glowie_app.core.devices.control.syncClock.SyncClockBroadcaster
 
 class AppContainer() {
     // Initialise communication module
@@ -52,11 +50,10 @@ class AppContainer() {
         LauncherViewModel(scriptRepository, launchScript)
     }
     val EditorViewModelFactory = {
-        val runCustomScript = RunCustomScript(LaunchScript(deviceManager))
-        val getScriptContent = GetScriptContent(scriptRepository)
+        val launchScript = LaunchScript(deviceManager)
         val colorLivePreview = ColorLivePreview(deviceManager)
         val saveUserScript = SaveScript(scriptRepository)
-        EditorViewModel(runCustomScript, getScriptContent, colorLivePreview, saveUserScript)
+        EditorViewModel(scriptRepository, launchScript, colorLivePreview, saveUserScript)
     }
     val deviceManagerViewModelFactory = {
         DeviceManagerViewModel(deviceManager)

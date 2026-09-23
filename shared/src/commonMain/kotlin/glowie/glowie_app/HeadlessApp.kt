@@ -1,11 +1,11 @@
 package glowie.glowie_app
 
-import glowie.glowie_app.control.domain.ControlDispatcher
-import glowie.glowie_app.devices.domain.DeviceManager
-import glowie.glowie_app.devices.domain.DeviceWatcher
-import glowie.glowie_app.devices.domain.GlowieDiscovery
-import glowie.glowie_app.scripts.domain.ImportBuiltinScripts
-import glowie.glowie_app.syncClock.domain.SyncClockBroadcaster
+import glowie.glowie_app.core.devices.control.ControlDispatcher
+import glowie.glowie_app.core.devices.management.DeviceManager
+import glowie.glowie_app.core.devices.management.DeviceWatcher
+import glowie.glowie_app.core.devices.management.GlowieDiscovery
+import glowie.glowie_app.core.scripts.services.ImportBuiltinScripts
+import glowie.glowie_app.core.devices.control.syncClock.SyncClockBroadcaster
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
