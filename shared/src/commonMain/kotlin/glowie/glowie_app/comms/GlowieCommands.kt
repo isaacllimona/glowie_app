@@ -27,11 +27,14 @@ class GlowieCommands (
             return
         }
 
-        // Maximum script length is max command length minus command + space
-        val maxScriptLen = commandSender.getMaxCommandLen() - Commands.runScript.length - 1
-
-        for (chunk in chunkScript(script, maxScriptLen)) {
-            commandSender.sendCommand("${Commands.runScript} $chunk")
+        val maxCommandLen = commandSender.getMaxCommandLen()
+        if (Commands.runScript.length + 1 + script.length <= maxCommandLen) {
+            commandSender.sendCommand("${Commands.runScript} $script")
+        }
+        else {
+            for (cmd in generateMultipartScriptCommands(script, maxCommandLen)) {
+                commandSender.sendCommand(cmd)
+            }
         }
     }
     override suspend fun setTime(time: Int) {
@@ -39,18 +42,29 @@ class GlowieCommands (
     }
 }
 
-private fun chunkScript(script: String, maxScriptLen: Int): Sequence<String> = sequence {
-    val scriptLen = script.length
-    var idx = 0
-    while (idx + maxScriptLen < scriptLen) {
-        val end = idx + maxScriptLen - 1  // -1 for the continuation character (\)
-        val chunk = script.substring(idx, end)
-        yield(chunk + "\\")
-        idx = end
+private fun generateMultipartScriptCommands(script: String, maxCommandLength: Int) = sequence {
+    var seq = 0
+    var scriptCursorIdx = 0
+
+    fun makePacket(header: String) : String {
+        val packetDataLength = min(maxCommandLength - header.length, script.length - scriptCursorIdx)
+        val packet = header + script.substring(scriptCursorIdx, scriptCursorIdx + packetDataLength)
+        scriptCursorIdx += packetDataLength
+
+        return packet
     }
-    // Last chunk -- without continuation character
-    val chunk = script.substring(idx)
-    yield(chunk)
+
+    val header = "${Commands.runMultipartScript} 0 ${script.length} "
+    yield(makePacket(header))
+    seq += 1
+
+    while (scriptCursorIdx < script.length) {
+        val header = "${Commands.runMultipartScript} $seq "
+        yield(makePacket(header))
+        seq += 1
+    }
+
+    yield("${Commands.runMultipartScript} \$$seq")
 }
 
 private object Commands {
@@ -58,5 +72,6 @@ private object Commands {
     const val setBrigntness = "brightness_set"
     const val shutdown = "shutdown"
     const val runScript = "run"
+    const val runMultipartScript = "mrun"
     const val setTime = "time_set"
 }
