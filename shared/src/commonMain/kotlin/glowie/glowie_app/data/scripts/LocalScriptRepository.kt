@@ -1,5 +1,6 @@
 package glowie.glowie_app.data.scripts
 
+import glowie.glowie_app.core.scripts.objects.ScriptContent
 import glowie.glowie_app.core.scripts.objects.ScriptHeader
 import glowie.glowie_app.core.scripts.objects.ScriptId
 import glowie.glowie_app.core.scripts.objects.ScriptMetadata
@@ -54,13 +55,13 @@ class LocalScriptRepository(
         }
     }
 
-    override suspend fun getScriptContent(scriptId: ScriptId): String {
+    override suspend fun getScriptContent(scriptId: ScriptId): ScriptContent {
         val script = index[scriptId] ?: error("Script $scriptId does not exist")
         val content = fileSystem.read(script.filename) ?: error("File ${script.filename} does not exist")
-        return content
+        return ScriptContent(content)
     }
 
-    override suspend fun saveScript(id: ScriptId, metadata: ScriptMetadata, content: String) {
+    override suspend fun saveScript(id: ScriptId, metadata: ScriptMetadata, content: ScriptContent) {
         val filename = "${id.value}.lua"
         val newScriptIndexEntry = ScriptIndexEntry(
             metadata = metadata,
@@ -68,7 +69,7 @@ class LocalScriptRepository(
         )
 
         // Save script to file
-        fileSystem.write(filename, content)
+        fileSystem.write(filename, content.value)
 
         // Update index
         index[id] = newScriptIndexEntry

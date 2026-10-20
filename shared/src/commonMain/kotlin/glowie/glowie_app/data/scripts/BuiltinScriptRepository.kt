@@ -1,5 +1,6 @@
 package glowie.glowie_app.data.scripts
 
+import glowie.glowie_app.core.scripts.objects.ScriptContent
 import glowie.glowie_app.core.scripts.repositories.ExternalScriptId
 import glowie.glowie_app.core.scripts.repositories.ExternalScriptRepository
 import glowie_app.shared.generated.resources.Res
@@ -12,9 +13,9 @@ class BuiltinScriptRepository : ExternalScriptRepository {
             .map { ExternalScriptId(it) }
     }
 
-    override suspend fun getScriptContent(id: ExternalScriptId): String {
+    override suspend fun getScriptContent(id: ExternalScriptId): ScriptContent {
         val filename = id.value
         val bytes = Res.readBytes("files/builtin_scripts/$filename")
-        return bytes.decodeToString()
+        return ScriptContent(bytes.decodeToString())
     }
 }

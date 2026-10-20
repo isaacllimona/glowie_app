@@ -17,7 +17,6 @@ import glowie.glowie_app.presentation.launcher.LauncherViewModel
 import glowie.glowie_app.data.scripts.BuiltinScriptRepository
 import glowie.glowie_app.data.scripts.LocalScriptRepository
 import glowie.glowie_app.core.scripts.services.ImportBuiltinScripts
-import glowie.glowie_app.core.scripts.services.SaveScript
 import glowie.glowie_app.core.devices.control.syncClock.SyncClockBroadcaster
 
 class AppContainer() {
@@ -38,7 +37,7 @@ class AppContainer() {
         ControlDispatcher(controlState, deviceManager),
         SyncClockBroadcaster(deviceManager),
         deviceManager,
-        ImportBuiltinScripts(SaveScript(scriptRepository), BuiltinScriptRepository())
+        ImportBuiltinScripts(scriptRepository, BuiltinScriptRepository())
     )
 
     // Define viewmodel factories
@@ -52,8 +51,7 @@ class AppContainer() {
     val EditorViewModelFactory = {
         val launchScript = LaunchScript(deviceManager)
         val colorLivePreview = ColorLivePreview(deviceManager)
-        val saveUserScript = SaveScript(scriptRepository)
-        EditorViewModel(scriptRepository, launchScript, colorLivePreview, saveUserScript)
+        EditorViewModel(scriptRepository, launchScript, colorLivePreview)
     }
     val deviceManagerViewModelFactory = {
         DeviceManagerViewModel(deviceManager)

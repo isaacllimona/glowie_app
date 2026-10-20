@@ -49,7 +49,7 @@ class LauncherViewModel(
     private fun launchScript(script: ScriptHeader) {
         viewModelScope.launch {
             val scriptContent = scriptRepository.getScriptContent(script.id)
-            launchScript(scriptContent)
+            launchScript(scriptContent.value)
             _runningScriptUIState.value = RunningScriptUIState.Running(scriptName = script.metadata.name, onStop = ::stopRunningScript)
         }
     }

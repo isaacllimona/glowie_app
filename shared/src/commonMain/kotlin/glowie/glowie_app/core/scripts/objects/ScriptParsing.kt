@@ -1,11 +1,11 @@
-package glowie.glowie_app.core.scripts.services
+package glowie.glowie_app.core.scripts.objects
 
-data class ScriptAnnotations (
+internal data class ScriptAnnotations (
     val name: String,
     val description: String
 )
 
-fun parseScriptAnnotations(content: String) : ScriptAnnotations {
+internal fun parseScriptAnnotations(content: String) : ScriptAnnotations {
     val nameRegex = """-- *@name (.+)""".toRegex()
     val name = nameRegex.find(content)?.groups?.get(1)?.value ?: ""
 

@@ -5,9 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import glowie.glowie_app.core.devices.control.ColorLivePreview
 import glowie.glowie_app.core.devices.control.LaunchScript
-import glowie.glowie_app.core.scripts.services.SaveStatus
-import glowie.glowie_app.core.scripts.services.SaveScript
+import glowie.glowie_app.core.scriptEditor.generateScriptTemplate
+import glowie.glowie_app.core.scripts.objects.ScriptContent
 import glowie.glowie_app.core.scripts.objects.ScriptId
+import glowie.glowie_app.core.scripts.objects.ScriptMetadata
 import glowie.glowie_app.core.scripts.objects.ScriptOrigin
 import glowie.glowie_app.core.scripts.repositories.ScriptRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +21,6 @@ class EditorViewModel(
     private val scriptRepository: ScriptRepository,
     private val launchScript: LaunchScript,
     private val colorLivePreview: ColorLivePreview,
-    private val saveScript: SaveScript,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(EditorUIState(
         scriptText = "",
@@ -36,13 +36,14 @@ class EditorViewModel(
 
     fun openScript(scriptId: ScriptId) {
         viewModelScope.launch {
-            changeScriptText(scriptRepository.getScriptContent(scriptId))
+            changeScriptText(scriptRepository.getScriptContent(scriptId).value)
         }
         currentScriptId = scriptId
     }
 
     fun newScript() {
-        changeScriptText("")
+        val newScriptText = generateScriptTemplate()
+        changeScriptText(newScriptText)
         currentScriptId = null
     }
 
@@ -63,34 +64,44 @@ class EditorViewModel(
     // ---- Script save dialog ----
 
     private fun saveScript() {
-        val saveStatus = saveScript.prepareSave(uiState.value.scriptText, ScriptOrigin.User)
-        when (saveStatus) {
-            is SaveStatus.Invalid -> showError(saveStatus.msg)
-            is SaveStatus.Ready -> _uiState.update {
-                it.copy(
-                    dialog = EditorDialogUIState.Save(
-                        state = SaveDialogUIState(
-                            scriptName = saveStatus.payload.metadata.name,
-                            onSaveConfirm = { onSaveConfirm(saveStatus) },
-                            onSaveDismiss = ::clearDialogs
-                        )
+        val scriptContent = ScriptContent(uiState.value.scriptText)
+        val metadata = scriptContent.generateMetadata(ScriptOrigin.User)
+
+        if (metadata.name.isEmpty()) {
+            showError("Script name is empty")
+            return
+        }
+
+        val id = metadata.makeId()
+        if (id == null) {
+            showError("Cannot save script. Reason unknown.")
+            return
+        }
+
+        _uiState.update {
+            it.copy(
+                dialog = EditorDialogUIState.Save(
+                    state = SaveDialogUIState(
+                        scriptName = metadata.name,
+                        onSaveConfirm = { onSaveConfirm(id, metadata, scriptContent) },
+                        onSaveDismiss = ::clearDialogs
                     )
                 )
-            }
+            )
         }
     }
 
-    private fun onSaveConfirm(saveStatus: SaveStatus.Ready) {
+    private fun onSaveConfirm(id: ScriptId, metadata: ScriptMetadata, content: ScriptContent) {
         viewModelScope.launch {
             try {
-                saveScript.save(saveStatus)
+                scriptRepository.saveScript(id, metadata, content)
             } catch (e: Exception) {
                 showError("Error saving script: ${e.message}")
                 return@launch
-            } finally {
-                clearDialogs()
             }
-            currentScriptId = saveStatus.payload.id
+
+            clearDialogs()
+            currentScriptId = id
         }
     }
 
